@@ -3,17 +3,24 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProductModule } from './modules/product/product.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { CartModule } from './modules/cart/cart.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { join } from 'path';
 
 @Module({
   imports: [
+    RedisModule.forRoot({
+      type: 'single',
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+    }),
     AuthModule,
     UserModule,
     ProductModule,
     UploadModule,
+    CartModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'public'), // Adjust based on build structure
+      rootPath: join(__dirname, '..', '..', 'public'), 
       serveRoot: '/', 
     }),
   ],
