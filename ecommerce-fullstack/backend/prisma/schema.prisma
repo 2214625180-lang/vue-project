@@ -12,6 +12,11 @@ enum Role {
   CUSTOMER
 }
 
+enum ProductStatus {
+  ON_SHELF
+  OFF_SHELF
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -19,4 +24,41 @@ model User {
   role      Role     @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Category? @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToCategory")
+  products  ProductSpu[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductSpu {
+  id          String        @id @default(uuid())
+  name        String
+  spuNo       String        @unique
+  description String?
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  status      ProductStatus @default(OFF_SHELF)
+  skus        ProductSku[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ProductSku {
+  id         String     @id @default(uuid())
+  spuId      String
+  spu        ProductSpu @relation(fields: [spuId], references: [id])
+  skuNo      String     @unique
+  price      Decimal
+  stock      Int
+  specs      Json
+  coverImage String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
