@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import UserProfile from '../views/UserProfile.vue'
+import ShopHome from '../views/shop/Home.vue'
+import ProductDetail from '../views/shop/ProductDetail.vue'
 import { useAuthStore } from '../store/auth'
 
 const router = createRouter({
@@ -19,7 +21,17 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/profile',
+      redirect: '/shop',
+    },
+    {
+      path: '/shop',
+      name: 'shop-home',
+      component: ShopHome,
+    },
+    {
+      path: '/shop/product/:spuId',
+      name: 'product-detail',
+      component: ProductDetail,
     },
   ],
 })
