@@ -1,20 +1,27 @@
-import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Query } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { GetProductsDto } from './dto/get-products.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
-@Controller('admin/products') // Assuming admin routes for creation
+@Controller('admin/products')
 export class AdminProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard) // Protect admin route
+  @UseGuards(JwtAuthGuard)
   create(@Body() createProductDto: CreateProductDto) {
     return this.productService.createProduct(createProductDto);
   }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  findAll(@Query() query: GetProductsDto) {
+    return this.productService.getProducts(query);
+  }
 }
 
-@Controller('products') // Public routes for fetching
+@Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
