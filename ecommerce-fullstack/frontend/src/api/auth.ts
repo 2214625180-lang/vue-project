@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
-});
+import request from '../utils/request';
 
 export interface AuthResponse {
   access_token: string;
@@ -19,6 +15,6 @@ export interface RegisterPayload {
 }
 
 export const authApi = {
-  login: (data: LoginPayload) => api.post<AuthResponse>('/auth/login', data),
-  register: (data: RegisterPayload) => api.post<AuthResponse>('/auth/register', data),
+  login: (data: LoginPayload) => request.post<AuthResponse>('/auth/login', data),
+  register: (data: RegisterPayload) => request.post<AuthResponse>('/auth/register', data),
 };
