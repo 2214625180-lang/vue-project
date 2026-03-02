@@ -1,49 +1,41 @@
-# E-commerce- project
+# 🚀 Enterprise E-Commerce Fullstack Platform
 
-This template should help get you started developing with Vue 3 in Vite.
+基于 Vue 3 + NestJS 构建的企业级全栈电商平台。采用标准的领域驱动设计（DDD）思想，支持高可扩展的业务模块，包含完整的 C 端购物流程与核心的后端 API 服务。
 
-## Recommended IDE Setup
+## 🛠 技术栈选型
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+### 前端 (Frontend)
+- **核心框架**: Vue 3 (Composition API) + `<script setup>`
+- **语言**: TypeScript (严格模式)
+- **构建工具**: Vite
+- **状态管理**: Pinia
+- **路由管理**: Vue Router 4
+- **网络请求**: Axios (企业级二次封装)
+- **UI 组件库**: Element Plus / Tailwind CSS
 
-## Recommended Browser Setup
+### 后端 (Backend)
+- **核心框架**: NestJS (模块化架构)
+- **语言**: TypeScript
+- **ORM 框架**: Prisma (强类型数据库操作)
+- **数据库**: MySQL / PostgreSQL
+- **参数校验**: class-validator & class-transformer
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## 📁 目录结构
 
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-# vue-project
+```text
+ecommerce-fullstack/
+├── frontend/               # Vue 3 前端工程
+│   ├── src/
+│   │   ├── api/            # 接口统一定义
+│   │   ├── components/     # 全局复用组件
+│   │   ├── router/         # 路由配置 (含权限拦截)
+│   │   ├── store/          # Pinia 状态
+│   │   ├── utils/          # 工具类 (request.ts 等)
+│   │   └── views/          # 视图层 (C端模块、用户中心等)
+├── backend/                # NestJS 后端工程
+│   ├── prisma/             # 数据库模型与迁移文件
+│   └── src/
+│       ├── common/         # 全局拦截器、过滤器、守卫
+│       ├── modules/        # 业务模块 (Auth, Product, Order 等)
+│       └── main.ts         # 后端入口
+└── README.md

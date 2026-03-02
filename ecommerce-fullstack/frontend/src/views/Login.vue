@@ -1,0 +1,111 @@
+<template>
+  <div class="login-container">
+    <el-card class="box-card">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="Login" name="login">
+          <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="80px">
+            <el-form-item label="Email" prop="email">
+              <el-input v-model="loginForm.email"></el-input>
+            </el-form-item>
+            <el-form-item label="Password" prop="password">
+              <el-input type="password" v-model="loginForm.password"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleLogin">Login</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane label="Register" name="register">
+          <el-form :model="registerForm" :rules="rules" ref="registerFormRef" label-width="80px">
+            <el-form-item label="Email" prop="email">
+              <el-input v-model="registerForm.email"></el-input>
+            </el-form-item>
+            <el-form-item label="Password" prop="password">
+              <el-input type="password" v-model="registerForm.password"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleRegister">Register</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, reactive } from 'vue';
+import { useAuthStore } from '../store/auth';
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import { useRouter } from 'vue-router';
+
+const authStore = useAuthStore();
+const router = useRouter();
+const activeTab = ref('login');
+
+const loginFormRef = ref<FormInstance>();
+const registerFormRef = ref<FormInstance>();
+
+const loginForm = reactive({
+  email: '',
+  password: '',
+});
+
+const registerForm = reactive({
+  email: '',
+  password: '',
+});
+
+const rules = reactive<FormRules>({
+  email: [
+    { required: true, message: 'Please input email', trigger: 'blur' },
+    { type: 'email', message: 'Please input valid email', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: 'Please input password', trigger: 'blur' },
+    { min: 6, message: 'Length should be at least 6', trigger: 'blur' },
+  ],
+});
+
+const handleLogin = async () => {
+  if (!loginFormRef.value) return;
+  await loginFormRef.value.validate(async (valid) => {
+    if (valid) {
+      const success = await authStore.login(loginForm);
+      if (success) {
+        ElMessage.success('Login successful');
+        router.push('/');
+      } else {
+        ElMessage.error('Login failed');
+      }
+    }
+  });
+};
+
+const handleRegister = async () => {
+  if (!registerFormRef.value) return;
+  await registerFormRef.value.validate(async (valid) => {
+    if (valid) {
+      const success = await authStore.register(registerForm);
+      if (success) {
+        ElMessage.success('Registration successful, please login');
+        activeTab.value = 'login';
+      } else {
+        ElMessage.error('Registration failed');
+      }
+    }
+  });
+};
+</script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.box-card {
+  width: 400px;
+}
+</style>
