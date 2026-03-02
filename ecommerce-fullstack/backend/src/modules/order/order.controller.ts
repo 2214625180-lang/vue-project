@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -12,5 +12,11 @@ export class OrderController {
   @Post('checkout')
   checkout(@CurrentUser() user: any, @Body() createOrderDto: CreateOrderDto) {
     return this.orderService.checkout(user.userId, createOrderDto);
+  }
+
+  @Get(':orderNo')
+  findOne(@CurrentUser() user: any, @Param('orderNo') orderNo: string) {
+    // In real app, implement findOne in OrderService
+    return this.orderService.findOne(user.userId, orderNo);
   }
 }
