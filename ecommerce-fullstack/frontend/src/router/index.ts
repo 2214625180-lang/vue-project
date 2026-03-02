@@ -7,6 +7,7 @@ import Cart from '../views/shop/Cart.vue'
 import Checkout from '../views/shop/Checkout.vue'
 import Payment from '../views/shop/Payment.vue'
 import OrderSuccess from '../views/shop/OrderSuccess.vue'
+import MyOrders from '../views/user/MyOrders.vue'
 import { useAuthStore } from '../store/auth'
 
 const router = createRouter({
@@ -21,6 +22,12 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: UserProfile,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/user/my-orders',
+      name: 'my-orders',
+      component: MyOrders,
       meta: { requiresAuth: true },
     },
     {
