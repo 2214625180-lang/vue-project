@@ -5,6 +5,7 @@ import { ProductModule } from './modules/product/product.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { CartModule } from './modules/cart/cart.module';
 import { AddressModule } from './modules/address/address.module';
+import { OrderModule } from './modules/order/order.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { join } from 'path';
@@ -21,6 +22,7 @@ import { join } from 'path';
     UploadModule,
     CartModule,
     AddressModule,
+    OrderModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'public'), 
       serveRoot: '/', 

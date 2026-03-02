@@ -3,6 +3,9 @@ import Login from '../views/Login.vue'
 import UserProfile from '../views/UserProfile.vue'
 import ShopHome from '../views/shop/Home.vue'
 import ProductDetail from '../views/shop/ProductDetail.vue'
+import Cart from '../views/shop/Cart.vue'
+import Checkout from '../views/shop/Checkout.vue'
+import Payment from '../views/shop/Payment.vue'
 import { useAuthStore } from '../store/auth'
 
 const router = createRouter({
@@ -32,6 +35,24 @@ const router = createRouter({
       path: '/shop/product/:spuId',
       name: 'product-detail',
       component: ProductDetail,
+    },
+    {
+      path: '/shop/cart',
+      name: 'cart',
+      component: Cart,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/shop/checkout',
+      name: 'checkout',
+      component: Checkout,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/shop/payment',
+      name: 'payment',
+      component: Payment,
+      meta: { requiresAuth: true },
     },
   ],
 })
