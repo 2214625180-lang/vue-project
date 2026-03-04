@@ -113,7 +113,7 @@ const fetchCart = async () => {
   loading.value = true;
   try {
     const res = await cartApi.getCart();
-    cartItems.value = res;
+    cartItems.value = res.data;
   } catch (error) {
     console.error(error);
   } finally {

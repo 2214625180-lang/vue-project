@@ -49,4 +49,5 @@ export interface PaginatedResponse<T> {
 export const orderApi = {
   checkout: (data: CreateOrderPayload) => request.post<{ orderNo: string }>('/order/checkout', data),
   getMyOrders: (params: GetMyOrdersParams) => request.get<PaginatedResponse<Order>>('/order/my-orders', { params }),
+  confirmReceipt: (id: string) => request.post(`/order/my-orders/${id}/confirm`),
 };

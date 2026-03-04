@@ -7,7 +7,10 @@
       
       <div class="mb-6">
         <p class="text-gray-500">Order No</p>
-        <p class="text-lg font-mono">{{ orderNo }}</p>
+        <p class="text-lg font-mono mb-2">{{ orderNo }}</p>
+        <el-tag :type="status === 'CANCELLED' ? 'info' : status === 'PAID' ? 'success' : 'warning'">
+          {{ status }}
+        </el-tag>
       </div>
 
       <div class="mb-8">
@@ -15,7 +18,8 @@
         <p class="text-3xl font-bold text-red-600">${{ Number(orderAmount).toFixed(2) }}</p>
       </div>
 
-      <el-button 
+      <el-button
+        v-if="status !== 'CANCELLED'"
         type="primary" 
         size="large" 
         class="w-full mb-4" 
@@ -25,6 +29,7 @@
       >
         {{ status === 'PAID' ? 'Paid Successfully' : 'Simulate Payment' }}
       </el-button>
+      <p v-else class="text-sm text-gray-500 mb-4">Order Closed (Timeout)</p>
       
       <p v-if="paying" class="text-sm text-blue-600 animate-pulse">
         Waiting for payment confirmation...
@@ -39,6 +44,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { paymentApi } from '../../api/payment';
 import { ElMessage } from 'element-plus';
 
+interface OrderStatusResponse {
+  status: string;
+  orderNo: string;
+  totalAmount: string;
+}
+
 const route = useRoute();
 const router = useRouter();
 const orderNo = route.query.orderNo as string;
@@ -52,10 +63,11 @@ const fetchOrderInfo = async () => {
   if (!orderNo) return;
   try {
     const res = await paymentApi.getOrderStatus(orderNo);
-    orderAmount.value = Number(res.totalAmount);
-    status.value = res.status;
+    const data = res as unknown as OrderStatusResponse;
+    orderAmount.value = Number(data.totalAmount);
+    status.value = data.status;
     
-    if (res.status === 'PAID') {
+    if (data.status === 'PAID') {
       handleSuccess();
     }
   } catch (error) {
@@ -67,6 +79,9 @@ const fetchOrderInfo = async () => {
 };
 
 const handlePay = async () => {
+  if (status.value !== 'PENDING') {
+    return;
+  }
   paying.value = true;
   try {
     await paymentApi.mockPay(orderNo);
@@ -84,9 +99,18 @@ const startPolling = () => {
   pollTimer = window.setInterval(async () => {
     try {
       const res = await paymentApi.getOrderStatus(orderNo);
-      if (res.status === 'PAID') {
+      const data = res as unknown as OrderStatusResponse;
+      if (data.status === 'PAID') {
         status.value = 'PAID';
         handleSuccess();
+      } else if (data.status === 'CANCELLED') {
+        status.value = 'CANCELLED';
+        paying.value = false;
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+        ElMessage.warning('Order Closed (Timeout)');
       }
     } catch (error) {
       console.error(error);

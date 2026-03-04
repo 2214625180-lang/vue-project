@@ -95,6 +95,8 @@ model Order {
   user            User        @relation(fields: [userId], references: [id])
   totalAmount     Decimal
   status          OrderStatus @default(PENDING)
+  trackingNumber  String?
+  courierCompany  String?
   addressSnapshot Json
   items           OrderItem[]
   createdAt       DateTime    @default(now())

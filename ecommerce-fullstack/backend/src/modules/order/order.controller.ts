@@ -11,8 +11,11 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get('my-orders')
-  getMyOrders(@CurrentUser() user: any, @Query() query: GetMyOrdersDto) {
-    return this.orderService.getMyOrders(user.userId, query);
+  async getMyOrders(@CurrentUser('id') userId: string, @Query() query: GetMyOrdersDto) {
+    return this.orderService.getMyOrders(userId, query);
+  }
+  getMyOrders(@CurrentUser('id') userId: string, @Query() query: GetMyOrdersDto) {
+    return this.orderService.getMyOrders(userId, query);
   }
 
   @Post('checkout')
@@ -22,7 +25,11 @@ export class OrderController {
 
   @Get(':orderNo')
   findOne(@CurrentUser() user: any, @Param('orderNo') orderNo: string) {
-    // In real app, implement findOne in OrderService
     return this.orderService.findOne(user.userId, orderNo);
+  }
+
+  @Post('my-orders/:id/confirm')
+  confirmReceipt(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.orderService.confirmReceipt(user.userId, id);
   }
 }

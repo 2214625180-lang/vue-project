@@ -9,10 +9,14 @@ import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { BullModule } from '@nestjs/bull';
 import { join } from 'path';
 
 @Module({
   imports: [
+    BullModule.forRoot({
+      redis: process.env.REDIS_URL || 'redis://localhost:6379',
+    }),
     RedisModule.forRoot({
       type: 'single',
       url: process.env.REDIS_URL || 'redis://localhost:6379',

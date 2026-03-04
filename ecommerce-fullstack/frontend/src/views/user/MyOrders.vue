@@ -30,19 +30,6 @@
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-start gap-4 py-2 border-b last:border-0 border-gray-100">
               <div class="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                 <!-- Placeholder for image since backend doesn't seem to return it in OrderItem yet based on previous steps, but user asked for coverImage. 
-                      Checking prisma schema from previous steps, OrderItem has spuName, skuSpecs, price, quantity. 
-                      The user instructions say "Show coverImage". 
-                      Wait, previous step OrderItem schema: "spuName, skuSpecs, price, quantity". It did NOT explicitly mention coverImage. 
-                      But Cart has it. 
-                      If OrderItem doesn't have it, I should check if I can display it.
-                      User prompt: "Show coverImage".
-                      I will assume it might be in skuSpecs or I need to handle it.
-                      Actually, looking at previous steps, OrderItem schema creation was: 
-                      `OrderItem`: id, orderId, skuId, spuName, skuSpecs, price, quantity.
-                      It seems coverImage is missing from OrderItem model in previous instructions.
-                      However, I should try to display it if available, or a placeholder.
-                  -->
                 <img v-if="item.coverImage" :src="item.coverImage" alt="Product" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
                   No Image
@@ -82,9 +69,13 @@
                   type="success" 
                   size="small" 
                   plain
+                  @click="handleConfirmReceipt(order)"
                 >
                   Confirm Receipt
                 </el-button>
+                <span v-if="order.status === 'CANCELLED'" class="text-sm text-gray-500">
+                  Order Closed (Timeout)
+                </span>
               </div>
             </div>
           </template>
@@ -108,8 +99,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { orderApi, type Order, type OrderStatus } from '../../api/order';
-import { ElMessage } from 'element-plus';
+import { orderApi, type Order, type OrderStatus, type PaginatedResponse } from '../../api/order';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const router = useRouter();
 const loading = ref(false);
@@ -127,11 +118,7 @@ const fetchOrders = async () => {
       limit: pageSize.value,
       status: activeStatus.value || undefined,
     });
-    // The interceptor returns data directly if code === 200
-    // But wait, the interceptor logic from memory:
-    // "If res.data.code === 200, return res.data.data directly"
-    // So `res` here is `PaginatedResponse<Order>`.
-    const data = res as any; // Type assertion if needed, but the generic should handle it
+    const data = res as unknown as PaginatedResponse<Order>;
     orderList.value = data.items;
     total.value = data.total;
   } catch (error) {
@@ -150,6 +137,28 @@ const goToPayment = (orderNo: string) => {
   router.push({ name: 'payment', query: { orderNo } });
 };
 
+const handleConfirmReceipt = async (order: Order) => {
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you have received the goods?',
+      'Confirm Receipt',
+      {
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No',
+        type: 'warning',
+      }
+    );
+    
+    await orderApi.confirmReceipt(order.id);
+    ElMessage.success('Order completed successfully');
+    fetchOrders();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error);
+    }
+  }
+};
+
 const getStatusType = (status: string) => {
   switch (status) {
     case 'PENDING': return 'warning';
@@ -165,15 +174,18 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString();
 };
 
-const parseSpecs = (specs: any) => {
+const parseSpecs = (specs: unknown): Record<string, string> => {
   if (typeof specs === 'string') {
     try {
-      return JSON.parse(specs);
+      return JSON.parse(specs) as Record<string, string>;
     } catch (e) {
       return {};
     }
   }
-  return specs || {};
+  if (specs && typeof specs === 'object') {
+    return specs as Record<string, string>;
+  }
+  return {};
 };
 
 onMounted(() => {
