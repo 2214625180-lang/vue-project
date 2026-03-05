@@ -2,7 +2,7 @@
   <el-container class="min-h-screen">
     <el-header class="bg-white border-b shadow-sm flex items-center justify-between px-6">
       <div class="flex items-center">
-        <h1 class="text-xl font-bold text-blue-600 mr-8">新星商城</h1>
+        <h1 class="text-xl font-bold text-blue-600 mr-8">极简商城</h1>
         <nav class="hidden md:flex space-x-6">
           <router-link to="/" class="text-gray-600 hover:text-blue-600 font-medium">首页</router-link>
           <router-link to="/shop/cart" class="text-gray-600 hover:text-blue-600 font-medium">购物车</router-link>
