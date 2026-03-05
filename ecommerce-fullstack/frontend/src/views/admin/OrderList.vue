@@ -2,26 +2,26 @@
   <div class="order-list p-4">
     <el-card>
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold">Order Management</h2>
+        <h2 class="text-xl font-bold">订单管理</h2>
       </div>
 
       <!-- Search Area -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="Order No">
-          <el-input v-model="searchForm.orderNo" placeholder="Order No" clearable />
+        <el-form-item label="订单号">
+          <el-input v-model="searchForm.orderNo" placeholder="订单号" clearable />
         </el-form-item>
-        <el-form-item label="Status">
-          <el-select v-model="searchForm.status" placeholder="Select Status" clearable style="width: 150px">
-            <el-option label="Pending" value="PENDING" />
-            <el-option label="Paid" value="PAID" />
-            <el-option label="Shipped" value="SHIPPED" />
-            <el-option label="Completed" value="COMPLETED" />
-            <el-option label="Cancelled" value="CANCELLED" />
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="选择状态" clearable style="width: 150px">
+            <el-option label="待支付" value="PENDING" />
+            <el-option label="已支付" value="PAID" />
+            <el-option label="已发货" value="SHIPPED" />
+            <el-option label="已完成" value="COMPLETED" />
+            <el-option label="已取消" value="CANCELLED" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">Search</el-button>
-          <el-button @click="handleReset">Reset</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -32,30 +32,34 @@
         style="width: 100%; margin-top: 20px"
         border
       >
-        <el-table-column prop="orderNo" label="Order No" min-width="180" />
-        <el-table-column prop="user.email" label="User" min-width="180">
+        <el-table-column prop="orderNo" label="订单号" min-width="180" />
+        <el-table-column prop="user.email" label="用户邮箱" min-width="180">
           <template #default="{ row }">
             {{ row.user?.email || 'N/A' }}
           </template>
         </el-table-column>
-        <el-table-column prop="totalAmount" label="Total Amount" width="120">
+        <el-table-column prop="totalAmount" label="订单金额" width="120">
           <template #default="{ row }">
             ${{ Number(row.totalAmount).toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="Status" width="120">
+        <el-table-column prop="status" label="订单状态" width="120">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">
-              {{ row.status }}
+              {{ row.status === 'PENDING' ? '待支付' :
+                 row.status === 'PAID' ? '已支付' :
+                 row.status === 'SHIPPED' ? '已发货' :
+                 row.status === 'COMPLETED' ? '已完成' :
+                 row.status === 'CANCELLED' ? '已取消' : row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="Created At" width="180">
+        <el-table-column prop="createdAt" label="订单创建时间" width="180">
           <template #default="{ row }">
             {{ new Date(row.createdAt).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="150" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button 
               v-if="row.status === 'PAID'"
@@ -63,7 +67,7 @@
               size="small" 
               @click="handleShip(row)"
             >
-              Ship Order
+              发货
             </el-button>
           </template>
         </el-table-column>
@@ -84,20 +88,20 @@
     </el-card>
 
     <!-- Ship Dialog -->
-    <el-dialog v-model="shipDialogVisible" title="Ship Order" width="30%">
+    <el-dialog v-model="shipDialogVisible" title="发货订单" width="30%">
       <el-form :model="shipForm" ref="shipFormRef" :rules="shipRules" label-width="140px">
-        <el-form-item label="Tracking Number" prop="trackingNumber">
+        <el-form-item label="物流单号" prop="trackingNumber">
           <el-input v-model="shipForm.trackingNumber" />
         </el-form-item>
-        <el-form-item label="Courier Company" prop="courierCompany">
+        <el-form-item label="快递公司" prop="courierCompany">
           <el-input v-model="shipForm.courierCompany" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="shipDialogVisible = false">Cancel</el-button>
+          <el-button @click="shipDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="confirmShip" :loading="shipping">
-            Confirm Ship
+            确认发货
           </el-button>
         </span>
       </template>
@@ -131,8 +135,8 @@ const shipForm = reactive({
 });
 
 const shipRules = reactive<FormRules>({
-  trackingNumber: [{ required: true, message: 'Please input tracking number', trigger: 'blur' }],
-  courierCompany: [{ required: true, message: 'Please input courier company', trigger: 'blur' }],
+  trackingNumber: [{ required: true, message: '请输入物流单号', trigger: 'blur' }],
+  courierCompany: [{ required: true, message: '请输入快递公司', trigger: 'blur' }],
 });
 
 const fetchOrders = async () => {
@@ -156,7 +160,7 @@ const fetchOrders = async () => {
     total.value = data.total || 0;
   } catch (error) {
     console.error(error);
-    ElMessage.error('Failed to fetch orders');
+    ElMessage.error('获取订单列表失败');
   } finally {
     loading.value = false;
   }
@@ -216,7 +220,7 @@ const confirmShip = async () => {
         fetchOrders();
       } catch (error: any) {
         console.error(error);
-        ElMessage.error(error.response?.data?.message || 'Failed to ship order');
+        ElMessage.error(error.response?.data?.message || '发货失败');
       } finally {
         shipping.value = false;
       }
@@ -230,9 +234,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.order-list {
-  /* padding: 20px; */
-}
 .search-form {
   display: flex;
   flex-wrap: wrap;

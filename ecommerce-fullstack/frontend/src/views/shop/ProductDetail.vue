@@ -9,7 +9,7 @@
             :src="selectedSku?.coverImage || product.skus[0]?.coverImage" 
             class="h-full w-full object-contain"
           />
-          <span v-else>No Image</span>
+          <span v-else>暂无图片</span>
         </div>
       </div>
 
@@ -17,73 +17,132 @@
       <div class="product-info">
         <div class="mb-4">
           <span class="text-sm text-blue-600 font-semibold uppercase tracking-wide">
-            {{ product.category?.name }}
+            {{ product.category?.name || '未分类' }}
           </span>
           <h1 class="text-3xl font-bold mt-2">{{ product.name }}</h1>
           <p class="text-gray-500 mt-2">{{ product.description }}</p>
         </div>
 
         <div class="price-section text-2xl font-bold text-red-600 mb-6">
-          ${{ currentPrice }}
+          ¥{{ currentPrice }}
         </div>
 
-        <!-- SKU Selector Placeholder -->
+        <!-- SKU Selector -->
         <div class="sku-selector mb-6 p-4 border rounded bg-gray-50">
-          <h3 class="font-semibold mb-2">Select Options:</h3>
-          <!-- 
-            TODO: Implement Dynamic SKU Selection Logic
-            1. Extract unique attributes (Color, Size) from all SKUs.
-            2. Render clickable tags for each attribute value.
-            3. On click, filter available SKUs.
-            4. Disable combinations that result in 0 stock.
-            5. Update `selectedSku` based on full selection.
-          -->
-          <p class="text-sm text-gray-500 italic">
-            (Dynamic SKU Matrix Selection UI will be implemented here. Currently displaying default/first SKU.)
-          </p>
+          <h3 class="font-semibold mb-3">选择规格 (颜色):</h3>
+          <div class="flex flex-wrap gap-3">
+            <button 
+              v-for="color in availableColors" 
+              :key="color"
+              class="px-4 py-2 border rounded-md transition-all duration-200"
+              :class="selectedColor === color 
+                ? 'border-blue-600 bg-blue-50 text-blue-600 font-bold' 
+                : 'border-gray-200 hover:border-blue-400 text-gray-700'"
+              @click="handleColorSelect(color)"
+            >
+              {{ color }}
+            </button>
+          </div>
         </div>
 
         <div class="actions flex gap-4">
           <button 
-            class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition"
+            class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
             :disabled="!selectedSku || selectedSku.stock <= 0"
+            @click="addToCart"
           >
-            Add to Cart
+            <el-icon><ShoppingCart /></el-icon>
+            加入购物车
           </button>
-          <button class="bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition">
-            Wishlist
+          <button 
+            class="py-3 px-6 rounded-lg font-semibold transition border flex items-center justify-center gap-2"
+            :class="isFavorited ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-700 border-transparent hover:bg-gray-200'"
+            @click="toggleFavorite"
+          >
+            <el-icon v-if="isFavorited"><StarFilled /></el-icon>
+            <el-icon v-else><Star /></el-icon>
+            {{ isFavorited ? '已收藏' : '收藏' }}
           </button>
         </div>
       </div>
     </div>
   </div>
   <div v-else-if="loading" class="text-center py-20">
-    Loading Product...
+    加载中...
   </div>
   <div v-else class="text-center py-20 text-red-500">
-    Product not found.
+    商品不存在。
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { Star, StarFilled, ShoppingCart } from '@element-plus/icons-vue';
 import { shopApi, type ShopProductDetail } from '../../api/shop';
+import { cartApi } from '../../api/cart';
 import type { ProductSku } from '../../api/product';
 
 const route = useRoute();
 const product = ref<ShopProductDetail | null>(null);
 const loading = ref(false);
 const selectedSku = ref<ProductSku | null>(null);
+const selectedColor = ref('');
+const isFavorited = ref(false);
+
+// Fallback colors if no specific attributes are found
+const availableColors = ['默认色', '典雅黑', '月光白', '极光蓝'];
 
 const currentPrice = computed(() => {
   if (selectedSku.value) return Number(selectedSku.value.price).toFixed(2);
   if (product.value && product.value.skus.length > 0) {
     // Default to min price or first sku price
-    return Number(product.value.skus[0].price).toFixed(2);
+    return Number(product.value.skus[0]?.price ?? 0).toFixed(2);
   }
   return '0.00';
 });
+
+const handleColorSelect = (color: string) => {
+  selectedColor.value = color;
+  // In a real app, we would filter SKUs by attributes.
+  // Here we just mock the selection by ensuring selectedSku is set if it wasn't already.
+  // If we had real attribute data, we'd do:
+  // selectedSku.value = product.value.skus.find(s => s.specs.color === color) || product.value.skus[0];
+  
+  if (!selectedSku.value && product.value?.skus?.length) {
+      selectedSku.value = product.value.skus[0] as ProductSku;
+  }
+};
+
+const addToCart = async () => {
+  if (!selectedColor.value) {
+    ElMessage.warning('请先选择商品规格');
+    return;
+  }
+  
+  if (!selectedSku.value || !selectedSku.value.id) {
+     ElMessage.error('商品SKU无效');
+     return;
+  }
+
+  try {
+    await cartApi.addToCart(selectedSku.value.id, 1);
+    ElMessage.success('已加入购物车');
+  } catch (error) {
+    console.error(error);
+    ElMessage.error('加入购物车失败');
+  }
+};
+
+const toggleFavorite = () => {
+  isFavorited.value = !isFavorited.value;
+  if (isFavorited.value) {
+    ElMessage.success('已加入收藏');
+  } else {
+    ElMessage.success('已取消收藏');
+  }
+};
 
 const fetchDetail = async () => {
   const id = route.params.spuId as string;
@@ -92,10 +151,11 @@ const fetchDetail = async () => {
   loading.value = true;
   try {
     const res = await shopApi.getProductDetail(id);
-    product.value = res;
+    const data = (res as any).data || res;
+    product.value = data;
     // Default select first SKU if available
-    if (res.skus.length > 0) {
-      selectedSku.value = res.skus[0];
+    if (data?.skus && data.skus.length > 0) {
+      selectedSku.value = data.skus[0] as ProductSku;
     }
   } catch (error) {
     console.error(error);

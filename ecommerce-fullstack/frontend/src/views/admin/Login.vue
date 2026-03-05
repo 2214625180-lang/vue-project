@@ -3,8 +3,8 @@
     <el-card class="w-full max-w-md shadow-lg rounded-lg">
       <template #header>
         <div class="text-center">
-          <h2 class="text-2xl font-bold text-gray-800">Admin Login</h2>
-          <p class="text-gray-500 text-sm mt-2">Sign in to manage your store</p>
+          <h2 class="text-2xl font-bold text-gray-800">管理员登录</h2>
+          <p class="text-gray-500 text-sm mt-2">请登录以管理您的店铺</p>
         </div>
       </template>
       
@@ -15,7 +15,7 @@
         label-position="top"
         @submit.prevent="handleLogin"
       >
-        <el-form-item label="Email" prop="email">
+        <el-form-item label="邮箱" prop="email">
           <el-input 
             v-model="loginForm.email" 
             placeholder="admin@example.com"
@@ -23,7 +23,7 @@
           />
         </el-form-item>
         
-        <el-form-item label="Password" prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input 
             v-model="loginForm.password" 
             type="password" 

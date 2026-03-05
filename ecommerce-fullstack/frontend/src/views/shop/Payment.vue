@@ -1,12 +1,12 @@
 <template>
   <div class="payment-container container mx-auto p-4 py-20">
-    <div v-if="loading" class="text-center">Loading Order Info...</div>
+    <div v-if="loading" class="text-center">加载订单信息...</div>
     
     <div v-else class="max-w-md mx-auto bg-white border rounded-lg shadow-sm p-8 text-center">
-      <h1 class="text-2xl font-bold mb-6">Cashier</h1>
+      <h1 class="text-2xl font-bold mb-6">收银台</h1>
       
       <div class="mb-6">
-        <p class="text-gray-500">Order No</p>
+        <p class="text-gray-500">订单编号</p>
         <p class="text-lg font-mono mb-2">{{ orderNo }}</p>
         <el-tag :type="status === 'CANCELLED' ? 'info' : status === 'PAID' ? 'success' : 'warning'">
           {{ status }}
@@ -14,7 +14,7 @@
       </div>
 
       <div class="mb-8">
-        <p class="text-gray-500">Amount to Pay</p>
+        <p class="text-gray-500">待支付金额</p>
         <p class="text-3xl font-bold text-red-600">${{ Number(orderAmount).toFixed(2) }}</p>
       </div>
 
@@ -27,12 +27,12 @@
         :loading="paying"
         :disabled="status === 'PAID'"
       >
-        {{ status === 'PAID' ? 'Paid Successfully' : 'Simulate Payment' }}
+        {{ status === 'PAID' ? '已支付' : '模拟支付' }}
       </el-button>
-      <p v-else class="text-sm text-gray-500 mb-4">Order Closed (Timeout)</p>
+      <p v-else class="text-sm text-gray-500 mb-4">订单已关闭（超时）</p>
       
       <p v-if="paying" class="text-sm text-blue-600 animate-pulse">
-        Waiting for payment confirmation...
+        等待支付确认...
       </p>
     </div>
   </div>
@@ -72,7 +72,7 @@ const fetchOrderInfo = async () => {
     }
   } catch (error) {
     console.error(error);
-    ElMessage.error('Failed to load order info');
+    ElMessage.error('加载订单信息失败');
   } finally {
     loading.value = false;
   }
@@ -85,7 +85,7 @@ const handlePay = async () => {
   paying.value = true;
   try {
     await paymentApi.mockPay(orderNo);
-    ElMessage.info('Payment initiated. Waiting for callback...');
+    ElMessage.info('支付已发起。等待回调...');
     startPolling();
   } catch (error) {
     console.error(error);
@@ -110,7 +110,7 @@ const startPolling = () => {
           clearInterval(pollTimer);
           pollTimer = null;
         }
-        ElMessage.warning('Order Closed (Timeout)');
+        ElMessage.warning('订单已关闭（超时）');
       }
     } catch (error) {
       console.error(error);
@@ -124,7 +124,7 @@ const handleSuccess = () => {
     pollTimer = null;
   }
   paying.value = false;
-  ElMessage.success('Payment Successful!');
+  ElMessage.success('支付成功！');
   
   setTimeout(() => {
     router.push(`/shop/order-success?orderNo=${orderNo}`);
@@ -133,7 +133,7 @@ const handleSuccess = () => {
 
 onMounted(() => {
   if (!orderNo) {
-    ElMessage.error('Invalid Order No');
+    ElMessage.error('无效的订单编号');
     router.push('/shop');
     return;
   }

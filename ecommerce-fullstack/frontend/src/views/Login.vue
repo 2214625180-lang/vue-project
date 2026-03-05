@@ -2,29 +2,29 @@
   <div class="login-container">
     <el-card class="box-card">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="Login" name="login">
+        <el-tab-pane label="登录" name="login">
           <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="80px">
-            <el-form-item label="Email" prop="email">
+            <el-form-item label="邮箱" prop="email">
               <el-input v-model="loginForm.email"></el-input>
             </el-form-item>
-            <el-form-item label="Password" prop="password">
+            <el-form-item label="密码" prop="password">
               <el-input type="password" v-model="loginForm.password"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="handleLogin">Login</el-button>
+              <el-button type="primary" @click="handleLogin">登录</el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>
-        <el-tab-pane label="Register" name="register">
+        <el-tab-pane label="注册" name="register">
           <el-form :model="registerForm" :rules="rules" ref="registerFormRef" label-width="80px">
-            <el-form-item label="Email" prop="email">
+            <el-form-item label="邮箱" prop="email">
               <el-input v-model="registerForm.email"></el-input>
             </el-form-item>
-            <el-form-item label="Password" prop="password">
+            <el-form-item label="密码" prop="password">
               <el-input type="password" v-model="registerForm.password"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="handleRegister">Register</el-button>
+              <el-button type="primary" @click="handleRegister">注册</el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>

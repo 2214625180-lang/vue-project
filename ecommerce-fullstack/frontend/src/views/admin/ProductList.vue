@@ -2,28 +2,35 @@
   <div class="product-list">
     <el-card>
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold">Product Management</h2>
-        <el-button type="primary" @click="handleAddProduct">Add New Product</el-button>
+        <h2 class="text-xl font-bold">商品管理</h2>
+        <el-button type="primary" @click="handleAddProduct">添加新商品</el-button>
       </div>
 
       <!-- Search Area -->
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="Keyword">
-          <el-input v-model="searchForm.keyword" placeholder="Name or SPU No" clearable />
+        <el-form-item label="搜索关键词">
+          <el-input v-model="searchForm.keyword" placeholder="商品名称或SPU编号" clearable />
         </el-form-item>
-        <el-form-item label="Status">
-          <el-select v-model="searchForm.status" placeholder="Select Status" clearable style="width: 150px">
-            <el-option label="On Shelf" value="ON_SHELF" />
-            <el-option label="Off Shelf" value="OFF_SHELF" />
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="选择状态" clearable style="width: 150px">
+            <el-option label="上架" value="ON_SHELF" />
+            <el-option label="下架" value="OFF_SHELF" />
           </el-select>
         </el-form-item>
         <!-- Category selection would ideally be dynamic, simplified for now -->
-        <el-form-item label="Category ID">
-          <el-input v-model="searchForm.categoryId" placeholder="Category UUID" clearable />
+        <el-form-item label="分类">
+          <el-select v-model="searchForm.categoryId" placeholder="选择分类" clearable style="width: 150px">
+            <el-option
+              v-for="item in categories"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">Search</el-button>
-          <el-button @click="handleReset">Reset</el-button>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>  
         </el-form-item>
       </el-form>
 
@@ -34,47 +41,35 @@
         style="width: 100%; margin-top: 20px"
         border
       >
-        <el-table-column prop="id" label="ID" width="100">
+        <el-table-column prop="id" label="商品ID" width="100">
           <template #default="{ row }">
             <span :title="row.id">{{ row.id.substring(0, 8) }}...</span>
           </template>
         </el-table-column>
-        <el-table-column label="Image" width="100">
-          <template #default="{ row }">
-             <el-image 
-               v-if="row.skus && row.skus.length > 0 && row.skus[0].coverImage"
-               :src="row.skus[0].coverImage" 
-               :preview-src-list="[row.skus[0].coverImage]"
-               fit="cover" 
-               class="w-12 h-12 rounded"
-             />
-             <span v-else class="text-gray-400 text-xs">No Image</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="spuNo" label="SPU No" width="150" />
-        <el-table-column prop="name" label="Product Name" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="description" label="Description" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="category.name" label="Category" width="150">
+        <el-table-column prop="spuNo" label="SPU编号" width="150" />
+        <el-table-column prop="name" label="商品名称" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="description" label="商品描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="category.name" label="分类名称" width="150">
           <template #default="{ row }">
             {{ row.category?.name || 'N/A' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="Status" width="120">
+        <el-table-column prop="status" label="商品状态" width="120">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ON_SHELF' ? 'success' : 'info'">
-              {{ row.status }}
+              {{ row.status === 'ON_SHELF' ? '上架' : '下架' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="Created At" width="180">
+        <el-table-column prop="createdAt" label="创建时间" width="180">
           <template #default="{ row }">
             {{ new Date(row.createdAt).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="Actions" width="150" fixed="right">
-          <template #default>
-            <el-button link type="primary" size="small">Edit</el-button>
-            <el-button link type="danger" size="small">Delete</el-button>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -94,27 +89,34 @@
     </el-card>
 
     <!-- Add Product Dialog -->
-    <el-dialog v-model="dialogVisible" title="Add New Product" width="50%">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑商品' : '添加新商品'" width="50%">
       <el-form :model="productForm" ref="productFormRef" :rules="rules" label-width="120px">
-        <el-form-item label="Product Name" prop="name">
+        <el-form-item label="商品名称" prop="name">
           <el-input v-model="productForm.name" />
         </el-form-item>
-        <el-form-item label="SPU No" prop="spuNo">
+        <el-form-item label="SPU编号" prop="spuNo">
           <el-input v-model="productForm.spuNo" />
         </el-form-item>
-        <el-form-item label="Category ID" prop="categoryId">
-          <el-input v-model="productForm.categoryId" placeholder="Use an existing UUID from DB" />
+        <el-form-item label="商品分类" prop="categoryId">
+          <el-select v-model="productForm.categoryId" placeholder="请选择商品分类" style="width: 100%">
+            <el-option
+              v-for="item in categories"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="Description" prop="description">
+        <el-form-item label="商品描述" prop="description">
           <el-input v-model="productForm.description" type="textarea" />
         </el-form-item>
-        <el-form-item label="Price" prop="price">
+        <el-form-item label="商品价格" prop="price">
           <el-input-number v-model="productForm.price" :min="0" :precision="2" />
         </el-form-item>
-        <el-form-item label="Stock" prop="stock">
+        <el-form-item label="库存数量" prop="stock">
           <el-input-number v-model="productForm.stock" :min="0" />
         </el-form-item>
-        <el-form-item label="Main Image" prop="mainImage">
+        <el-form-item label="商品图片" prop="mainImage">
           <el-upload
             class="avatar-uploader"
             :show-file-list="false"
@@ -127,9 +129,9 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">Cancel</el-button>
+          <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="submitProduct(productFormRef)" :loading="submitting">
-            Save
+            添加商品
           </el-button>
         </span>
       </template>
@@ -139,9 +141,9 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue';
-import { productApi, type ProductSpu, type ProductQueryParams, type CreateProductPayload, ProductStatus } from '../../api/product';
+import { productApi, type ProductSpu, type ProductQueryParams, type CreateProductPayload, ProductStatus, type Category } from '../../api/product';
 import { uploadApi } from '../../api/upload';
-import { ElMessage, type UploadRequestOptions, type FormInstance, type FormRules } from 'element-plus';
+import { ElMessage, ElMessageBox, type UploadRequestOptions, type FormInstance, type FormRules } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 
 const loading = ref(false);
@@ -149,8 +151,11 @@ const tableData = ref<ProductSpu[]>([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
+const categories = ref<Category[]>([]);
 
 const dialogVisible = ref(false);
+const isEdit = ref(false);
+const currentProductId = ref('');
 const productFormRef = ref<FormInstance>();
 const submitting = ref(false);
 
@@ -165,10 +170,11 @@ const productForm = reactive({
 });
 
 const rules = reactive<FormRules>({
-  name: [{ required: true, message: 'Please input product name', trigger: 'blur' }],
-  spuNo: [{ required: true, message: 'Please input SPU No', trigger: 'blur' }],
-  categoryId: [{ required: true, message: 'Please input Category ID', trigger: 'blur' }],
-  price: [{ required: true, message: 'Please input price', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  spuNo: [{ required: true, message: '请输入SPU编号', trigger: 'blur' }],
+  // categoryId is now optional
+  price: [{ required: true, message: '请输入商品价格', trigger: 'blur' }],
+  stock: [{ required: true, message: '请输入库存数量', trigger: 'blur' }],
 });
 
 const searchForm = reactive<ProductQueryParams>({
@@ -202,7 +208,7 @@ const fetchProducts = async () => {
     total.value = data.total || 0;
   } catch (error) {
     console.error(error);
-    ElMessage.error('Failed to fetch products');
+    ElMessage.error('获取商品列表失败');
   } finally {
     loading.value = false;
   }
@@ -220,7 +226,18 @@ const handleReset = () => {
   handleSearch();
 };
 
+const fetchCategories = async () => {
+  try {
+    const res = await productApi.getCategories();
+    categories.value = (res as any).data || res;
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+  }
+};
+
 const handleAddProduct = () => {
+  isEdit.value = false;
+  currentProductId.value = '';
   dialogVisible.value = true;
   // Reset form
   Object.assign(productForm, {
@@ -234,16 +251,54 @@ const handleAddProduct = () => {
   });
 };
 
+const handleEdit = (row: ProductSpu) => {
+    isEdit.value = true;
+    currentProductId.value = row.id || '';
+    dialogVisible.value = true;
+    
+    // Populate form
+    Object.assign(productForm, {
+      name: row.name,
+      spuNo: row.spuNo,
+      description: row.description || '',
+      categoryId: row.categoryId,
+      // Safely access first SKU if available for price/stock
+      price: row.skus && row.skus.length > 0 && row.skus[0] ? Number(row.skus[0].price) : 0,
+      stock: row.skus && row.skus.length > 0 && row.skus[0] ? Number(row.skus[0].stock) : 0,
+      // Handle image from sku or potentially add mainImage to ProductSpu if backend supports
+      mainImage: row.skus && row.skus.length > 0 && row.skus[0] ? row.skus[0].coverImage : '',
+    });
+  };
+  
+  const handleDelete = async (id: string) => {
+    try {
+      await ElMessageBox.confirm('确定要删除该商品吗?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      });
+      
+      await productApi.delete(id);
+      ElMessage.success('删除成功');
+      fetchProducts();
+    } catch (error) {
+      if (error !== 'cancel') {
+        console.error(error);
+        ElMessage.error('删除失败');
+      }
+    }
+  };
+
 const customUpload = async (options: UploadRequestOptions) => {
   try {
     const res = await uploadApi.uploadImage(options.file);
     // Handle both direct data return and nested data structure
     productForm.mainImage = (res as any).data?.url || (res as any).url;
     console.log('Upload response URL:', productForm.mainImage);
-    ElMessage.success('Image uploaded');
+    ElMessage.success('图片上传成功');
   } catch (error) {
     console.error('Upload failed:', error);
-    ElMessage.error('Upload failed');
+    ElMessage.error('图片上传失败');
   }
 };
 
@@ -258,25 +313,31 @@ const submitProduct = async (formEl: FormInstance | undefined) => {
           spuNo: productForm.spuNo,
           description: productForm.description,
           categoryId: productForm.categoryId,
-          status: ProductStatus.ON_SHELF, // Default on shelf
+          status: ProductStatus.ON_SHELF,
           skus: [
             {
               skuNo: `${productForm.spuNo}-001`,
               price: Number(productForm.price),
               stock: Number(productForm.stock),
-              specs: { color: 'Default' }, // Mock specs
+              specs: { color: 'Default' },
               coverImage: productForm.mainImage,
             }
           ]
         };
         
-        await productApi.create(payload);
-        ElMessage.success('Product created successfully');
+        if (isEdit.value && currentProductId.value) {
+          await productApi.update(currentProductId.value, payload);
+          ElMessage.success('商品更新成功');
+        } else {
+          await productApi.create(payload);
+          ElMessage.success('商品创建成功');
+        }
+        
         dialogVisible.value = false;
         fetchProducts();
       } catch (error: any) {
-        console.error('Save Product Error:', error.response?.data || error);
-        ElMessage.error('Failed to create product');
+        console.error('保存商品失败:', error.response?.data || error);
+        ElMessage.error('保存商品失败');
       } finally {
         submitting.value = false;
       }
@@ -296,6 +357,7 @@ const handleCurrentChange = (val: number) => {
 
 onMounted(() => {
   fetchProducts();
+  fetchCategories();
 });
 </script>
 

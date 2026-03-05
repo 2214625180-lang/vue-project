@@ -176,7 +176,7 @@ export class OrderService {
             include: {
               sku: {
                 include: {
-                  spu: true
+                  spu: true 
                 }
               }
             }
@@ -185,7 +185,19 @@ export class OrderService {
       }),
     ]);
 
-    return { items, total, page, limit };
+    // Flatten image URLs for frontend consumption
+    const mappedItems = items.map(order => ({
+      ...order,
+      items: order.items.map(item => ({
+        ...item,
+        // Inject image URL from nested relations
+        image: item.sku?.coverImage || (item.sku?.spu as any)?.mainImage || null,
+        // Also provide full spu info just in case
+        product: item.sku?.spu
+      }))
+    }));
+
+    return { items: mappedItems, total, page, limit };
   }
 
   async findOne(userId: string, orderNo: string) {

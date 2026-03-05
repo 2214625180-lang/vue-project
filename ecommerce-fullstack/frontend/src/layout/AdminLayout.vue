@@ -2,7 +2,7 @@
   <el-container class="h-screen w-full">
     <el-aside width="240px" class="bg-gray-800 text-white flex flex-col">
       <div class="h-16 flex items-center justify-center font-bold text-xl border-b border-gray-700">
-        Admin Dashboard
+        管理员后台
       </div>
       <el-menu
         router
@@ -14,15 +14,15 @@
       >
         <el-menu-item index="/admin/dashboard">
           <el-icon><DataLine /></el-icon>
-          <span>Dashboard</span>
+          <span>总结表格</span>
         </el-menu-item>
         <el-menu-item index="/admin/products">
           <el-icon><Goods /></el-icon>
-          <span>Products</span>
+          <span>商品管理</span>
         </el-menu-item>
         <el-menu-item index="/admin/orders">
           <el-icon><List /></el-icon>
-          <span>Orders</span>
+          <span>订单管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -30,17 +30,17 @@
     <el-container>
       <el-header class="bg-white border-b flex items-center justify-between px-6">
         <div class="font-medium text-gray-500">
-          Welcome back, Admin
+          欢迎回来，{{ authStore.user?.username || '管理员' }}
         </div>
         <el-dropdown>
           <span class="el-dropdown-link cursor-pointer flex items-center gap-2">
             <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-            <span>Admin User</span>
-            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            <span>{{ authStore.user?.username || '管理员' }}</span>
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="handleLogout">Logout</el-dropdown-item>
+              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

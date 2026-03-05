@@ -5,7 +5,7 @@
       <el-col :span="6" :xs="12" :sm="12" :md="6">
         <el-card shadow="hover" class="metric-card bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-none">
           <div class="flex flex-col">
-            <span class="text-sm opacity-80">Total Revenue</span>
+            <span class="text-sm opacity-80">总收入</span>
             <span class="text-2xl font-bold mt-2">¥125,430</span>
             <div class="mt-2 text-xs opacity-70 flex items-center">
               <span>+12.5%</span>
@@ -17,7 +17,7 @@
       <el-col :span="6" :xs="12" :sm="12" :md="6">
         <el-card shadow="hover" class="metric-card bg-gradient-to-br from-blue-400 to-cyan-500 text-white border-none">
           <div class="flex flex-col">
-            <span class="text-sm opacity-80">New Orders</span>
+            <span class="text-sm opacity-80">新订单数</span>
             <span class="text-2xl font-bold mt-2">156</span>
             <div class="mt-2 text-xs opacity-70 flex items-center">
               <span>+5.2%</span>
@@ -29,7 +29,7 @@
       <el-col :span="6" :xs="12" :sm="12" :md="6">
         <el-card shadow="hover" class="metric-card bg-gradient-to-br from-emerald-400 to-teal-500 text-white border-none">
           <div class="flex flex-col">
-            <span class="text-sm opacity-80">Active Users</span>
+            <span class="text-sm opacity-80">活跃用户数</span>
             <span class="text-2xl font-bold mt-2">3,200</span>
             <div class="mt-2 text-xs opacity-70 flex items-center">
               <span>+8.1%</span>
@@ -41,7 +41,7 @@
       <el-col :span="6" :xs="12" :sm="12" :md="6">
         <el-card shadow="hover" class="metric-card bg-gradient-to-br from-orange-400 to-amber-500 text-white border-none">
           <div class="flex flex-col">
-            <span class="text-sm opacity-80">Avg. Order Value</span>
+            <span class="text-sm opacity-80">订单平均价值</span>
             <span class="text-2xl font-bold mt-2">¥804</span>
             <div class="mt-2 text-xs opacity-70 flex items-center">
               <span>-2.4%</span>
@@ -59,8 +59,8 @@
         <el-card shadow="never">
           <template #header>
             <div class="flex justify-between items-center">
-              <span class="font-bold">Weekly Sales Trend</span>
-              <el-tag size="small" type="success">Last 7 Days</el-tag>
+              <span class="font-bold">每周销售趋势</span>
+              <el-tag size="small" type="success">最近7天</el-tag>
             </div>
           </template>
           <div ref="lineChartRef" style="width: 100%; height: 400px;"></div>
@@ -72,7 +72,7 @@
         <el-card shadow="never">
           <template #header>
             <div class="flex justify-between items-center">
-              <span class="font-bold">Sales by Category</span>
+              <span class="font-bold">销售类别分布</span>
             </div>
           </template>
           <div ref="pieChartRef" style="width: 100%; height: 400px;"></div>
@@ -119,7 +119,7 @@ const initLineChart = () => {
       {
         type: 'category',
         boundaryGap: false,
-        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
       }
     ],
     yAxis: [

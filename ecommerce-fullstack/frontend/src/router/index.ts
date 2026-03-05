@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import BasicLayout from '../layout/BasicLayout.vue'
 import AdminLayout from '../layout/AdminLayout.vue'
 import Login from '../views/Login.vue'
-import UserProfile from '../views/UserProfile.vue'
 import ShopHome from '../views/shop/Home.vue'
 import ProductDetail from '../views/shop/ProductDetail.vue'
 import Cart from '../views/shop/Cart.vue'
@@ -69,7 +68,13 @@ const router = createRouter({
         {
           path: 'profile',
           name: 'profile',
-          component: UserProfile,
+          component: () => import('../views/UserProfile.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'address',
+          name: 'address',
+          component: () => import('../views/user/AddressList.vue'),
           meta: { requiresAuth: true },
         }
       ]

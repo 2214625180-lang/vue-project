@@ -1,14 +1,14 @@
 <template>
   <div class="max-w-4xl mx-auto p-4">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">My Orders</h2>
+      <h2 class="text-2xl font-bold">我的订单</h2>
       <div class="flex items-center gap-4">
         <el-upload
           class="upload-demo"
           :http-request="customUpload"
           :show-file-list="false"
         >
-          <el-button type="primary">Test Upload</el-button>
+          <el-button type="primary">上传订单截图</el-button>
         </el-upload>
         <el-image 
           v-if="uploadedImageUrl" 
@@ -20,17 +20,17 @@
     </div>
 
     <el-tabs v-model="activeStatus" @tab-change="handleTabChange" class="mb-6">
-      <el-tab-pane label="All" name=""></el-tab-pane>
-      <el-tab-pane label="Pending" name="PENDING"></el-tab-pane>
-      <el-tab-pane label="Paid" name="PAID"></el-tab-pane>
-      <el-tab-pane label="Shipped" name="SHIPPED"></el-tab-pane>
-      <el-tab-pane label="Completed" name="COMPLETED"></el-tab-pane>
+      <el-tab-pane label="全部订单" name=""></el-tab-pane>
+      <el-tab-pane label="待付款" name="PENDING"></el-tab-pane>
+      <el-tab-pane label="已付款" name="PAID"></el-tab-pane>
+      <el-tab-pane label="已发货" name="SHIPPED"></el-tab-pane>
+      <el-tab-pane label="已完成" name="COMPLETED"></el-tab-pane>
     </el-tabs>
 
     <div v-loading.fullscreen.lock="isPaying">
       <div v-loading="loading">
         <div v-if="!orderList || orderList.length === 0" class="text-center py-10 text-gray-500">
-          No orders found.
+          暂无订单
         </div>
 
       <div v-else class="space-y-6">
@@ -38,24 +38,32 @@
           <template #header>
             <div class="flex justify-between items-center">
               <div class="text-sm text-gray-500">
-                <span class="mr-4">Order No: {{ order.orderNo }}</span>
+                <span class="mr-4">订单号: {{ order.orderNo }}</span>
                 <span>{{ formatDate(order.createdAt) }}</span>
               </div>
-              <el-tag :type="getStatusType(order.status)">{{ order.status }}</el-tag>
+              <el-tag :type="getStatusType(order.status)">
+  {{ 
+    order.status === 'PENDING' ? '待付款' :
+    order.status === 'PAID' ? '已付款' :
+    order.status === 'SHIPPED' ? '已发货' :
+    order.status === 'COMPLETED' ? '已完成' :
+    order.status === 'CANCELLED' ? '已取消' : order.status
+  }}
+</el-tag>
             </div>
           </template>
 
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-start gap-4 py-2 border-b last:border-0 border-gray-100">
               <div class="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                <img 
-                  v-if="item.sku?.spu?.mainImage || item.sku?.image || item.coverImage" 
-                  :src="item.sku?.spu?.mainImage || item.sku?.image || item.coverImage" 
-                  alt="Product" 
-                  class="w-full h-full object-cover" 
+                <el-image 
+                  v-if="getItemImage(item)" 
+                  :src="getItemImage(item)" 
+                  fit="cover"
+                  class="w-full h-full"
                 />
                 <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
-                  No Image
+                  无图片
                 </div>
               </div>
               <div class="flex-1">
@@ -66,9 +74,9 @@
                   </span>
                 </div>
               </div>
-              <div class="text-right">
-                <div class="font-medium">¥{{ item.price }}</div>
-                <div class="text-sm text-gray-500">x {{ item.quantity }}</div>
+              <div class="flex flex-col items-end justify-center ml-auto">
+                <span class="text-lg font-bold text-red-500 mb-1">¥{{ item.price }}</span>
+                <span class="text-sm text-gray-400">x {{ item.quantity }}</span>
               </div>
             </div>
           </div>
@@ -76,7 +84,7 @@
           <template #footer>
             <div class="flex justify-between items-center">
               <div class="font-bold text-lg">
-                Total: <span class="text-red-600">¥{{ order.totalAmount }}</span>
+                订单金额: <span class="text-red-600">¥{{ order.totalAmount }}</span>
               </div>
               <div class="space-x-3">
                 <el-button 
@@ -85,7 +93,7 @@
                   size="small" 
                   @click="handlePayNow(order.id)"
                 >
-                  Pay Now
+                  去支付
                 </el-button>
                 <el-button 
                   v-if="order.status === 'SHIPPED'" 
@@ -94,10 +102,10 @@
                   plain
                   @click="handleConfirmReceipt(order)"
                 >
-                  Confirm Receipt
+                  确认收货
                 </el-button>
                 <span v-if="order.status === 'CANCELLED'" class="text-sm text-gray-500">
-                  Order Closed (Timeout)
+                  订单已关闭（超时未支付）
                 </span>
               </div>
             </div>
@@ -159,6 +167,7 @@ const fetchOrders = async () => {
     });
     // Assuming API returns { items: [], total: 0 } structure directly or inside data
     const data = (res as any).data || res; 
+    console.log('Orders response:', data); // Debug log
     orderList.value = data.items || [];
     total.value = data.total || 0;
   } catch (error) {
@@ -176,58 +185,50 @@ const handleTabChange = () => {
 };
 
 // Renamed from goToPayment to handlePayNow to implement the mock payment logic directly
-const handlePayNow = async (orderId: string) => {
-  try {
-    await ElMessageBox.confirm('Simulate payment for this order?', 'Payment', {
-      confirmButtonText: 'Pay Now',
-      cancelButtonText: 'Cancel',
-      type: 'info',
-    });
-
-    isPaying.value = true;
-    // Call the mock payment endpoint
-    // We assume there's a paymentApi.mockPay(orderId) method available
-    // If not, we can define it inline or add to API file. 
-    // Assuming paymentApi is imported or we use axios directly.
-    // Let's use a direct axios call if paymentApi is missing, or update api/payment.ts later.
-    // For now, let's assume paymentApi.mockPay(orderId) exists as per prompt requirement.
+    const handlePayNow = async (orderId: string) => {
+      try {
+        await ElMessageBox.confirm('是否确认支付该订单？', '订单支付', {
+          confirmButtonText: '确认支付',
+          cancelButtonText: '取消',
+          type: 'info',
+        });
     
-    // Using orderId as per the new backend endpoint `mockPaymentSimple` which takes `orderId`
-    await paymentApi.mockPay(orderId);
-    
-    ElMessage.success('Payment Successful!');
-    fetchOrders(); // Refresh status
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error(error);
-      ElMessage.error('Payment failed');
-    }
-  } finally {
-    isPaying.value = false;
-  }
-};
-
-const handleConfirmReceipt = async (order: Order) => {
-  try {
-    await ElMessageBox.confirm(
-      'Are you sure you have received the goods?',
-      'Confirm Receipt',
-      {
-        confirmButtonText: 'Yes',
-        cancelButtonText: 'No',
-        type: 'warning',
+        isPaying.value = true;
+        await paymentApi.mockPay(orderId);
+        
+        ElMessage.success('支付成功！');
+        fetchOrders(); // Refresh status
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+          ElMessage.error('支付失败');
+        }
+      } finally {
+        isPaying.value = false;
       }
-    );
+    };
     
-    await orderApi.confirmReceipt(order.id);
-    ElMessage.success('Order completed successfully');
-    fetchOrders();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error(error);
-    }
-  }
-};
+    const handleConfirmReceipt = async (order: Order) => {
+      try {
+        await ElMessageBox.confirm(
+          '是否确认已收到商品？',
+          '确认收货',
+          {
+            confirmButtonText: '确认',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        );
+        
+        await orderApi.confirmReceipt(order.id);
+        ElMessage.success('订单已完成');
+        fetchOrders();
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(error);
+        }
+      }
+    };
 
 const getStatusType = (status: string) => {
   switch (status) {
@@ -256,6 +257,18 @@ const parseSpecs = (specs: unknown): Record<string, string> => {
     return specs as Record<string, string>;
   }
   return {};
+};
+
+const getItemImage = (orderItem: any) => {
+  if (!orderItem) return '';
+  return orderItem.image || // Check the new flattened image field
+         orderItem.product?.mainImage || 
+         orderItem.sku?.product?.mainImage || 
+         orderItem.sku?.spu?.mainImage || 
+         orderItem.sku?.image || 
+         orderItem.mainImage || 
+         orderItem.coverImage ||
+         '';
 };
 
 onMounted(() => {

@@ -50,8 +50,17 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  parentId?: string;
+}
+
 export const productApi = {
   create: (data: CreateProductPayload) => request.post('/admin/products', data),
+  update: (id: string, data: Partial<CreateProductPayload>) => request.patch(`/admin/products/${id}`, data),
+  delete: (id: string) => request.delete(`/admin/products/${id}`),
   getDetail: (spuId: string) => request.get<ProductSpu>(`/products/${spuId}`),
   getProductsList: (params: ProductQueryParams) => request.get<PaginatedResponse<ProductSpu>>('/admin/products', { params }),
+  getCategories: () => request.get<Category[]>('/admin/products/categories'),
 };

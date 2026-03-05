@@ -1,11 +1,11 @@
 <template>
   <div class="cart-container container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
+    <h1 class="text-2xl font-bold mb-6">购物车</h1>
 
-    <div v-if="loading" class="text-center py-10">Loading cart...</div>
+    <div v-if="loading" class="text-center py-10">加载购物车中...</div>
     
     <div v-else-if="!cartItems || cartItems.length === 0" class="text-center py-10 text-gray-500">
-      Your cart is empty. <router-link to="/shop" class="text-blue-600">Go Shopping</router-link>
+      您的购物车为空。 <router-link to="/shop" class="text-blue-600">去购物</router-link>
     </div>
 
     <div v-else>
@@ -17,7 +17,7 @@
       >
         <el-table-column type="selection" width="55" />
         
-        <el-table-column label="Product" min-width="300">
+        <el-table-column label="商品" min-width="300">
           <template #default="{ row }">
             <div class="flex items-center gap-4">
               <img 
@@ -36,13 +36,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Price" width="120">
+        <el-table-column label="单价" width="120">
           <template #default="{ row }">
             ${{ Number(row.price).toFixed(2) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="Quantity" width="180">
+        <el-table-column label="数量" width="180">
           <template #default="{ row }">
             <el-input-number 
               v-model="row.quantity" 
@@ -54,7 +54,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Subtotal" width="120">
+        <el-table-column label="金额" width="120">
           <template #default="{ row }">
             <span class="font-bold text-red-600">
               ${{ (Number(row.price) * row.quantity).toFixed(2) }}
@@ -62,7 +62,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Action" width="100">
+        <el-table-column label="操作" width="100">
           <template #default="{ row }">
             <el-button 
               type="danger" 
@@ -70,7 +70,7 @@
               size="small" 
               @click="removeItem(row.id)"
             >
-              Remove
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -79,11 +79,11 @@
       <!-- Bottom Bar -->
       <div class="mt-6 flex justify-between items-center bg-gray-50 p-4 rounded-lg border">
         <div class="text-gray-600">
-          Selected: <span class="font-bold text-black">{{ selectedCount }}</span> items
+          已选择: <span class="font-bold text-black">{{ selectedCount }}</span> 项
         </div>
         <div class="flex items-center gap-6">
           <div class="text-xl">
-            Total: <span class="font-bold text-red-600">${{ totalPrice.toFixed(2) }}</span>
+            总价: <span class="font-bold text-red-600">${{ totalPrice.toFixed(2) }}</span>
           </div>
           <el-button 
             type="primary" 
@@ -91,11 +91,43 @@
             :disabled="selectedCount === 0"
             @click="checkout"
           >
-            Checkout
+            去结算
           </el-button>
         </div>
       </div>
     </div>
+    <!-- Checkout Dialog -->
+    <el-dialog v-model="checkoutVisible" title="确认订单信息" width="500px">
+      <div class="mb-4">
+        <h3 class="font-bold mb-2">选择收货地址</h3>
+        <div v-if="addresses.length > 0" class="max-h-60 overflow-y-auto">
+          <el-radio-group v-model="selectedAddressId" class="w-full flex flex-col gap-3">
+            <el-radio 
+              v-for="addr in addresses" 
+              :key="addr.id" 
+              :label="addr.id"
+              class="border p-3 rounded-lg mr-0 w-full flex items-start h-auto"
+            >
+              <div class="flex flex-col text-left">
+                <span class="font-bold">{{ addr.receiverName }} <span class="text-gray-500 font-normal ml-2">{{ addr.phone }}</span></span>
+                <span class="text-sm text-gray-600 mt-1">{{ addr.province }} {{ addr.city }} {{ addr.district }} {{ addr.detailAddress }}</span>
+              </div>
+            </el-radio>
+          </el-radio-group>
+        </div>
+        <div v-else class="text-center py-6 text-gray-500">
+          暂无收货地址，请先前往 <router-link to="/address" class="text-blue-600">个人中心</router-link> 添加
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="checkoutVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitOrder" :loading="submitting" :disabled="addresses.length === 0">
+            提交订单
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -104,6 +136,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { cartApi, type CartItem } from '../../api/cart';
 import { orderApi } from '../../api/order';
+import { addressApi, type UserAddress } from '../../api/address';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { debounce } from 'lodash-es';
 
@@ -111,6 +144,10 @@ const router = useRouter();
 const loading = ref(false);
 const cartItems = ref<CartItem[]>([]);
 const selectedItems = ref<CartItem[]>([]);
+const addresses = ref<UserAddress[]>([]);
+const selectedAddressId = ref('');
+const checkoutVisible = ref(false);
+const submitting = ref(false);
 
 const fetchCart = async () => {
   loading.value = true;
@@ -135,7 +172,7 @@ const updateQuantityApi = debounce(async (skuId: string, quantity: number) => {
     await cartApi.updateQuantity(skuId, quantity);
   } catch (error) {
     console.error(error);
-    ElMessage.error('Failed to update quantity');
+    ElMessage.error('更新数量失败');
     fetchCart(); // Revert on error
   }
 }, 500);
@@ -147,11 +184,13 @@ const handleQuantityChange = (skuId: string, quantity: number) => {
 
 const removeItem = async (skuId: string) => {
   try {
-    await ElMessageBox.confirm('Are you sure you want to remove this item?', 'Warning', {
+    await ElMessageBox.confirm('确定要删除这一项吗？', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
       type: 'warning',
     });
     await cartApi.removeFromCart([skuId]);
-    ElMessage.success('Item removed');
+    ElMessage.success('删除成功');
     // Optimistic update or refetch
     cartItems.value = cartItems.value.filter(item => item.id !== skuId);
     // Also remove from selected if present
@@ -159,31 +198,50 @@ const removeItem = async (skuId: string) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error(error);
+      ElMessage.error('删除失败');
     }
+  }
+};
+
+const fetchAddresses = async () => {
+  try {
+    const res = await addressApi.getList();
+    addresses.value = res.data || [];
+    if (addresses.value.length > 0) {
+      const defaultAddr = addresses.value.find(a => a.isDefault);
+      selectedAddressId.value = defaultAddr ? defaultAddr.id : addresses.value[0]?.id ?? '';
+    }
+  } catch (error) {
+    console.error('Failed to fetch addresses', error);
   }
 };
 
 const checkout = async () => {
   if (selectedItems.value.length === 0) return;
-  
-  try {
-    await ElMessageBox.confirm(`Proceed to checkout with ${selectedItems.value.length} items? Total: $${totalPrice.value.toFixed(2)}`, 'Checkout', {
-      confirmButtonText: 'Place Order',
-      cancelButtonText: 'Cancel',
-      type: 'info'
-    });
+  checkoutVisible.value = true;
+  fetchAddresses(); // Fetch addresses when dialog opens
+};
 
-    // Directly create order from cart selection
+const submitOrder = async () => {
+  if (!selectedAddressId.value) {
+    ElMessage.warning('请选择收货地址');
+    return;
+  }
+
+  submitting.value = true;
+  try {
     const skuIds = selectedItems.value.map(i => i.id);
-    await orderApi.createOrder(skuIds);
+    await orderApi.createOrder(skuIds); 
     
-    ElMessage.success('Order placed successfully!');
+    await orderApi.createOrder(skuIds, selectedAddressId.value); 
+    ElMessage.success('订单创建成功！');
+    checkoutVisible.value = false;
     router.push('/user/my-orders');
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error(error);
-      ElMessage.error('Failed to place order');
-    }
+  } catch (error: any) {
+    console.error(error);
+    ElMessage.error(error.response?.data?.message || '订单创建失败');
+  } finally {
+    submitting.value = false;
   }
 };
 

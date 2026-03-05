@@ -42,8 +42,8 @@ export class CreateProductDto {
   description?: string;
 
   @IsString()
-  @IsNotEmpty()
-  categoryId!: string;
+  @IsOptional()
+  categoryId?: string;
 
   @IsEnum(ProductStatus)
   @IsOptional()

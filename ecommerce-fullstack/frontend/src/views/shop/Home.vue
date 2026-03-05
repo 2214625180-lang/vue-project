@@ -1,6 +1,6 @@
 <template>
   <div class="shop-home container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">Latest Products</h1>
+    <h1 class="text-2xl font-bold mb-6">最新商品</h1>
     
     <el-skeleton :loading="loading" animated :count="6">
       <template #template>
@@ -33,22 +33,21 @@
                 alt="Product Image" 
                 class="h-full w-full object-cover"
               />
-              <span v-else class="text-gray-400">No Image</span>
+              <span v-else class="text-gray-400">无图片</span>
             </div>
             
             <div class="p-4">
               <h3 class="text-lg font-semibold truncate">{{ product.name }}</h3>
-              <p class="text-sm text-gray-500 mb-2">{{ product.spuNo }}</p>
               <div class="flex justify-between items-center mt-2">
                 <div class="text-xl font-bold text-red-600">
                   ${{ product.price.toFixed(2) }}
                 </div>
-                <el-button type="primary" size="small" @click.stop="handleAddToCart(product)">Add to Cart</el-button>
+                <el-button type="primary" size="small" @click.stop="handleAddToCart(product)">加入购物车</el-button>
               </div>
             </div>
           </div>
         </div>
-        <div v-else-if="!loading" class="text-center py-10 text-gray-500">No products found.</div>
+        <div v-else-if="!loading" class="text-center py-10 text-gray-500">暂无商品</div>
       </template>
     </el-skeleton>
     
@@ -61,15 +60,15 @@
         @click="changePage(page - 1)"
         class="px-4 py-2 border rounded disabled:opacity-50"
       >
-        Prev
+        上一页
       </button>
-      <span class="px-4 py-2">Page {{ page }}</span>
+      <span class="px-4 py-2">第 {{ page }} 页</span>
       <button 
         :disabled="!products || products.length < limit" 
         @click="changePage(page + 1)"
         class="px-4 py-2 border rounded disabled:opacity-50"
       >
-        Next
+        下一页
       </button>
     </div>
   </div>
@@ -146,10 +145,14 @@ const handleAddToCart = async (product: any) => {
   try {
     const detail = await shopApi.getProductDetail(product.id);
     // Safe access with optional chaining
-    const firstSku = detail?.skus?.[0];
+    const firstSku = detail.data?.skus?.[0];
     
     if (firstSku) {
-      await cartApi.addToCart(firstSku.id, 1);
+      if (firstSku.id) {
+        await cartApi.addToCart(firstSku.id, 1);
+      } else {
+        ElMessage.warning('SKU ID is missing');
+      }
       ElMessage.success('Added to cart successfully');
     } else {
       ElMessage.warning('Product unavailable (No SKUs)');

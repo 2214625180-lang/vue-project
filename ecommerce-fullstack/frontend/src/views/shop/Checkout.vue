@@ -1,8 +1,8 @@
 <template>
   <div class="checkout-container container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">Checkout</h1>
+    <h1 class="text-2xl font-bold mb-6">结账</h1>
 
-    <div v-if="loading" class="text-center py-10">Preparing checkout...</div>
+    <div v-if="loading" class="text-center py-10">准备结账...</div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Left Column: Address & Items -->
@@ -133,17 +133,17 @@ const fetchData = async () => {
       cartApi.getCart()
     ]);
     
-    addresses.value = addrRes;
+    addresses.value = addrRes.data || [];
     
     // Auto-select default address
-    const defaultAddr = addrRes.find(a => a.isDefault);
+    const defaultAddr = addrRes.data.find(a => a.isDefault);
     if (defaultAddr) {
       selectedAddressId.value = defaultAddr.id;
-    } else if (addrRes.length > 0) {
-      selectedAddressId.value = addrRes[0].id;
+    } else if (addresses.value.length > 0) {
+      selectedAddressId.value = addresses.value[0]?.id ?? '';
     }
 
-    checkoutItems.value = cartRes; // Ideally filter by route.query.skuIds if implemented
+    checkoutItems.value = cartRes.data || []; // Ideally filter by route.query.skuIds if implemented
   } catch (error) {
     console.error(error);
     ElMessage.error('Failed to load checkout data');
@@ -167,7 +167,7 @@ const handleCheckout = async () => {
     
     ElMessage.success('Order placed successfully!');
     // Redirect to payment placeholder
-    router.push(`/shop/payment?orderNo=${res.orderNo}`);
+    router.push(`/shop/payment?orderNo=${res.data.orderNo}`);
   } catch (error: any) {
     console.error(error);
     // Error is handled by global interceptor usually, but we can be specific here

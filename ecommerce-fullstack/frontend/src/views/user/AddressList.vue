@@ -1,11 +1,11 @@
 <template>
   <div class="address-list container mx-auto p-4">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">My Addresses</h1>
-      <el-button type="primary" @click="handleAdd">Add New Address</el-button>
+      <h1 class="text-2xl font-bold">我的收货地址</h1>
+      <el-button type="primary" @click="handleAdd">新增地址</el-button>
     </div>
 
-    <div v-if="loading" class="text-center py-10">Loading...</div>
+    <div v-if="loading" class="text-center py-10">加载中...</div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <el-card 
@@ -16,7 +16,7 @@
         <template #header>
           <div class="flex justify-between items-center">
             <span class="font-bold text-lg">{{ address.receiverName }}</span>
-            <el-tag v-if="address.isDefault" type="success" size="small">Default</el-tag>
+            <el-tag v-if="address.isDefault" type="success" size="small">默认</el-tag>
           </div>
         </template>
         <div class="text-gray-600 space-y-2">
@@ -27,8 +27,8 @@
           <p class="text-sm text-gray-500">{{ address.detailAddress }}</p>
         </div>
         <div class="mt-4 flex justify-end gap-2 border-t pt-4">
-          <el-button link type="primary" @click="handleEdit(address)">Edit</el-button>
-          <el-button link type="danger" @click="handleDelete(address.id)">Delete</el-button>
+          <el-button link type="primary" @click="handleEdit(address)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(address.id)">删除</el-button>
         </div>
       </el-card>
     </div>
@@ -36,36 +36,36 @@
     <!-- Address Form Dialog -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? 'Edit Address' : 'Add Address'"
+      :title="isEdit ? '修改地址' : '新增地址'"
       width="500px"
       @closed="resetForm"
     >
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="Name" prop="receiverName">
+        <el-form-item label="收件人姓名" prop="receiverName">
           <el-input v-model="form.receiverName" />
         </el-form-item>
-        <el-form-item label="Phone" prop="phone">
+        <el-form-item label="手机号码" prop="phone">
           <el-input v-model="form.phone" />
         </el-form-item>
-        <el-form-item label="Area" required>
+        <el-form-item label="所在地区" required>
           <div class="flex gap-2 w-full">
-            <el-input v-model="form.province" placeholder="Province" />
-            <el-input v-model="form.city" placeholder="City" />
-            <el-input v-model="form.district" placeholder="District" />
+            <el-input v-model="form.province" placeholder="省份" />
+            <el-input v-model="form.city" placeholder="城市" />
+            <el-input v-model="form.district" placeholder="区县" />
           </div>
           <!-- In real app, use el-cascader with region data -->
         </el-form-item>
-        <el-form-item label="Detail" prop="detailAddress">
+        <el-form-item label="详细地址" prop="detailAddress">
           <el-input type="textarea" v-model="form.detailAddress" />
         </el-form-item>
-        <el-form-item label="Default">
+        <el-form-item label="设为默认地址">
           <el-switch v-model="form.isDefault" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">Cancel</el-button>
-          <el-button type="primary" @click="handleSubmit">Confirm</el-button>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmit">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -104,7 +104,7 @@ const fetchAddresses = async () => {
   loading.value = true;
   try {
     const res = await addressApi.getList();
-    addresses.value = res;
+    addresses.value = res.data || [];
   } catch (error) {
     console.error(error);
   } finally {
