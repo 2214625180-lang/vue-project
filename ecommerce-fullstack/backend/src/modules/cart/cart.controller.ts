@@ -14,11 +14,23 @@ export class CartController {
   }
 
   @Post()
-  addToCart(
+  async addToCart(
     @CurrentUser() user: any,
     @Body() body: { skuId: string; quantity: number },
   ) {
-    return this.cartService.addToCart(user.userId, body.skuId, body.quantity);
+    console.log('Cart request received. User:', user, 'Body:', body);
+    try {
+      if (!user || !user.userId) {
+        throw new Error('User ID missing from JWT payload');
+      }
+      if (!body.skuId || !body.quantity) {
+        throw new Error('Missing skuId or quantity in body');
+      }
+      return await this.cartService.addToCart(user.userId, body.skuId, body.quantity);
+    } catch (error) {
+      console.error('Error in addToCart controller:', error);
+      throw error;
+    }
   }
 
   @Put(':skuId')

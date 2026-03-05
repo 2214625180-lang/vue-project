@@ -13,12 +13,27 @@ export const useAuthStore = defineStore('auth', {
     async login(payload: LoginPayload) {
       try {
         const response = await authApi.login(payload);
-        this.token = response.data.access_token;
-        localStorage.setItem('token', this.token);
-        return true;
+        console.log('🔑 Login Response:', response);
+
+        // Robust token extraction
+        // NestJS typically returns { access_token: "..." }
+        // Axios interceptor might return data directly or wrapped.
+        const data = response as any;
+        const token = data.access_token || data.token || data.data?.access_token || data.data?.token;
+        
+        if (token) {
+            this.token = token;
+            localStorage.setItem('token', this.token);
+            // Optionally fetch user profile here if not included in login response
+            // await this.fetchUserProfile(); 
+            return true;
+        }
+        
+        console.error('Token not found in login response:', response);
+        return false;
       } catch (error) {
         console.error('Login failed', error);
-        return false;
+        throw error; // Re-throw to let component handle specific error messages
       }
     },
     async register(payload: RegisterPayload) {

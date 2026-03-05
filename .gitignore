@@ -37,3 +37,12 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Uploads
+uploads/
+ecommerce-fullstack/backend/uploads/

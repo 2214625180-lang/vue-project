@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite ecommerce-fullstack/frontend --config ecommerce-fullstack/frontend/vite.config.ts",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -12,10 +12,13 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.14",
-    "@nestjs/core": "^11.1.14",
+    "@nestjs/common": "^11.1.15",
+    "@nestjs/core": "^11.1.15",
+    "@nestjs/serve-static": "^5.0.4",
     "axios": "^1.7.9",
+    "echarts": "^6.0.0",
     "element-plus": "^2.13.3",
+    "nprogress": "^0.2.0",
     "pinia": "^3.0.4",
     "reflect-metadata": "^0.2.2",
     "vue": "beta",
@@ -25,6 +28,7 @@
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.0",
     "@types/node": "^24.11.0",
+    "@types/nprogress": "^0.2.3",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vitejs/plugin-vue-jsx": "^5.1.4",
     "@vue/test-utils": "^2.4.6",

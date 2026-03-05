@@ -14,8 +14,10 @@ export class OrderController {
   async getMyOrders(@CurrentUser('id') userId: string, @Query() query: GetMyOrdersDto) {
     return this.orderService.getMyOrders(userId, query);
   }
-  getMyOrders(@CurrentUser('id') userId: string, @Query() query: GetMyOrdersDto) {
-    return this.orderService.getMyOrders(userId, query);
+
+  @Post()
+  async createOrder(@CurrentUser() user: any, @Body('skuIds') skuIds: string[]) {
+    return this.orderService.createOrderFromCart(user.userId, skuIds);
   }
 
   @Post('checkout')

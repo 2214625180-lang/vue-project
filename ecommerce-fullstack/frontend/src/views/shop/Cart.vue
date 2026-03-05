@@ -3,8 +3,8 @@
     <h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
 
     <div v-if="loading" class="text-center py-10">Loading cart...</div>
-
-    <div v-else-if="cartItems.length === 0" class="text-center py-10 text-gray-500">
+    
+    <div v-else-if="!cartItems || cartItems.length === 0" class="text-center py-10 text-gray-500">
       Your cart is empty. <router-link to="/shop" class="text-blue-600">Go Shopping</router-link>
     </div>
 
@@ -101,10 +101,13 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { cartApi, type CartItem } from '../../api/cart';
+import { orderApi } from '../../api/order';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { debounce } from 'lodash-es';
 
+const router = useRouter();
 const loading = ref(false);
 const cartItems = ref<CartItem[]>([]);
 const selectedItems = ref<CartItem[]>([]);
@@ -113,9 +116,10 @@ const fetchCart = async () => {
   loading.value = true;
   try {
     const res = await cartApi.getCart();
-    cartItems.value = res.data;
+    cartItems.value = res.data || [];
   } catch (error) {
     console.error(error);
+    cartItems.value = [];
   } finally {
     loading.value = false;
   }
@@ -159,10 +163,28 @@ const removeItem = async (skuId: string) => {
   }
 };
 
-const checkout = () => {
+const checkout = async () => {
   if (selectedItems.value.length === 0) return;
-  ElMessage.info('Proceeding to checkout with ' + selectedItems.value.length + ' items');
-  // Logic to navigate to checkout page with selected SKU IDs
+  
+  try {
+    await ElMessageBox.confirm(`Proceed to checkout with ${selectedItems.value.length} items? Total: $${totalPrice.value.toFixed(2)}`, 'Checkout', {
+      confirmButtonText: 'Place Order',
+      cancelButtonText: 'Cancel',
+      type: 'info'
+    });
+
+    // Directly create order from cart selection
+    const skuIds = selectedItems.value.map(i => i.id);
+    await orderApi.createOrder(skuIds);
+    
+    ElMessage.success('Order placed successfully!');
+    router.push('/user/my-orders');
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error);
+      ElMessage.error('Failed to place order');
+    }
+  }
 };
 
 const selectedCount = computed(() => selectedItems.value.length);

@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma.service';
+import { PrismaService } from '../../prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { OrderStatus } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
@@ -15,6 +15,31 @@ export class PaymentService {
     private prisma: PrismaService,
     private httpService: HttpService,
   ) {}
+
+  async mockPaymentSimple(userId: string, orderId: string) {
+     const order = await this.prisma.order.findUnique({
+       where: { id: orderId },
+     });
+
+     if (!order || order.userId !== userId) {
+       throw new BadRequestException('Order not found or access denied');
+     }
+
+     if (order.status !== OrderStatus.PENDING) {
+       throw new BadRequestException('Order is not in PENDING state');
+     }
+
+     // Simulate network delay
+     await new Promise(resolve => setTimeout(resolve, 1500));
+
+     // Update status directly
+     await this.prisma.order.update({
+       where: { id: orderId },
+       data: { status: OrderStatus.PAID },
+     });
+
+     return { success: true, message: 'Payment Successful' };
+  }
 
   async mockPay(userId: string, orderNo: string) {
     const order = await this.prisma.order.findUnique({

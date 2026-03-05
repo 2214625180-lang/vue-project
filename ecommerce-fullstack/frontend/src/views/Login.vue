@@ -71,12 +71,21 @@ const handleLogin = async () => {
   if (!loginFormRef.value) return;
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
-      const success = await authStore.login(loginForm);
-      if (success) {
-        ElMessage.success('Login successful');
-        router.push('/');
-      } else {
-        ElMessage.error('Login failed');
+      try {
+        const success = await authStore.login({
+          email: loginForm.email,
+          password: loginForm.password
+        });
+        if (success) {
+          ElMessage.success('Login successful');
+          const redirect = router.currentRoute.value.query.redirect as string;
+          router.push(redirect || '/');
+        } else {
+          // Fallback if login returns false but didn't throw (e.g. handled in store)
+          // Usually store throws or interceptor handles error message
+        }
+      } catch (e: any) {
+        // Error message already shown by interceptor usually, but safe to log or handle specific UI state
       }
     }
   });
@@ -86,12 +95,17 @@ const handleRegister = async () => {
   if (!registerFormRef.value) return;
   await registerFormRef.value.validate(async (valid) => {
     if (valid) {
-      const success = await authStore.register(registerForm);
-      if (success) {
-        ElMessage.success('Registration successful, please login');
-        activeTab.value = 'login';
-      } else {
-        ElMessage.error('Registration failed');
+      try {
+        const success = await authStore.register({
+          email: registerForm.email,
+          password: registerForm.password
+        });
+        if (success) {
+          ElMessage.success('Registration successful, please login');
+          activeTab.value = 'login';
+        }
+      } catch (e: any) {
+         // Error handled by interceptor
       }
     }
   });

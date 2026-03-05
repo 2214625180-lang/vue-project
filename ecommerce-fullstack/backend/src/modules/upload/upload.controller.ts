@@ -3,8 +3,6 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
-  ParseFilePipeBuilder,
-  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -17,23 +15,15 @@ export class UploadController {
 
   @Post('image')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { dest: './uploads' })) // Save to local uploads folder
   async uploadImage(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|webp)$/,
-        })
-        .addMaxSizeValidator({
-          maxSize: 5 * 1024 * 1024, // 5MB
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
+    @UploadedFile()
     file: Express.Multer.File,
   ) {
-    const url = await this.uploadService.uploadImage(file);
+    // Return local URL
+    // In production, you would upload to OSS/S3 here
+    // For local dev, we just return the path to ServeStatic
+    const url = `http://localhost:3000/uploads/${file.filename}`;
     return { url };
   }
 }

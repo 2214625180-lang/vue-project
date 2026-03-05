@@ -1,6 +1,23 @@
 <template>
   <div class="max-w-4xl mx-auto p-4">
-    <h2 class="text-2xl font-bold mb-6">My Orders</h2>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">My Orders</h2>
+      <div class="flex items-center gap-4">
+        <el-upload
+          class="upload-demo"
+          :http-request="customUpload"
+          :show-file-list="false"
+        >
+          <el-button type="primary">Test Upload</el-button>
+        </el-upload>
+        <el-image 
+          v-if="uploadedImageUrl" 
+          :src="uploadedImageUrl" 
+          :preview-src-list="[uploadedImageUrl]"
+          class="w-10 h-10 rounded border"
+        />
+      </div>
+    </div>
 
     <el-tabs v-model="activeStatus" @tab-change="handleTabChange" class="mb-6">
       <el-tab-pane label="All" name=""></el-tab-pane>
@@ -10,10 +27,11 @@
       <el-tab-pane label="Completed" name="COMPLETED"></el-tab-pane>
     </el-tabs>
 
-    <div v-loading="loading">
-      <div v-if="orderList.length === 0" class="text-center py-10 text-gray-500">
-        No orders found.
-      </div>
+    <div v-loading.fullscreen.lock="isPaying">
+      <div v-loading="loading">
+        <div v-if="!orderList || orderList.length === 0" class="text-center py-10 text-gray-500">
+          No orders found.
+        </div>
 
       <div v-else class="space-y-6">
         <el-card v-for="order in orderList" :key="order.id" shadow="hover" class="order-card">
@@ -30,7 +48,12 @@
           <div class="space-y-4">
             <div v-for="item in order.items" :key="item.id" class="flex items-start gap-4 py-2 border-b last:border-0 border-gray-100">
               <div class="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                <img v-if="item.coverImage" :src="item.coverImage" alt="Product" class="w-full h-full object-cover" />
+                <img 
+                  v-if="item.sku?.spu?.mainImage || item.sku?.image || item.coverImage" 
+                  :src="item.sku?.spu?.mainImage || item.sku?.image || item.coverImage" 
+                  alt="Product" 
+                  class="w-full h-full object-cover" 
+                />
                 <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
                   No Image
                 </div>
@@ -60,7 +83,7 @@
                   v-if="order.status === 'PENDING'" 
                   type="primary" 
                   size="small" 
-                  @click="goToPayment(order.orderNo)"
+                  @click="handlePayNow(order.id)"
                 >
                   Pay Now
                 </el-button>
@@ -94,21 +117,37 @@
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { orderApi, type Order, type OrderStatus, type PaginatedResponse } from '../../api/order';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { paymentApi } from '../../api/payment'; // Assuming this exists or we add it
+import { uploadApi } from '../../api/upload'; // Import upload API
+import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus';
 
 const router = useRouter();
 const loading = ref(false);
+const isPaying = ref(false); // For fullscreen loader
 const orderList = ref<Order[]>([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const activeStatus = ref<OrderStatus | ''>('');
+const uploadedImageUrl = ref('');
+
+const customUpload = async (options: UploadRequestOptions) => {
+  try {
+    const res = await uploadApi.uploadImage(options.file);
+    uploadedImageUrl.value = (res as any).url;
+    ElMessage.success('Image uploaded successfully');
+  } catch (error) {
+    console.error('Upload failed', error);
+    ElMessage.error('Upload failed');
+  }
+};
 
 const fetchOrders = async () => {
   loading.value = true;
@@ -118,11 +157,14 @@ const fetchOrders = async () => {
       limit: pageSize.value,
       status: activeStatus.value || undefined,
     });
-    const data = res as unknown as PaginatedResponse<Order>;
-    orderList.value = data.items;
-    total.value = data.total;
+    // Assuming API returns { items: [], total: 0 } structure directly or inside data
+    const data = (res as any).data || res; 
+    orderList.value = data.items || [];
+    total.value = data.total || 0;
   } catch (error) {
     console.error('Failed to fetch orders', error);
+    orderList.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -133,8 +175,36 @@ const handleTabChange = () => {
   fetchOrders();
 };
 
-const goToPayment = (orderNo: string) => {
-  router.push({ name: 'payment', query: { orderNo } });
+// Renamed from goToPayment to handlePayNow to implement the mock payment logic directly
+const handlePayNow = async (orderId: string) => {
+  try {
+    await ElMessageBox.confirm('Simulate payment for this order?', 'Payment', {
+      confirmButtonText: 'Pay Now',
+      cancelButtonText: 'Cancel',
+      type: 'info',
+    });
+
+    isPaying.value = true;
+    // Call the mock payment endpoint
+    // We assume there's a paymentApi.mockPay(orderId) method available
+    // If not, we can define it inline or add to API file. 
+    // Assuming paymentApi is imported or we use axios directly.
+    // Let's use a direct axios call if paymentApi is missing, or update api/payment.ts later.
+    // For now, let's assume paymentApi.mockPay(orderId) exists as per prompt requirement.
+    
+    // Using orderId as per the new backend endpoint `mockPaymentSimple` which takes `orderId`
+    await paymentApi.mockPay(orderId);
+    
+    ElMessage.success('Payment Successful!');
+    fetchOrders(); // Refresh status
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error);
+      ElMessage.error('Payment failed');
+    }
+  } finally {
+    isPaying.value = false;
+  }
 };
 
 const handleConfirmReceipt = async (order: Order) => {

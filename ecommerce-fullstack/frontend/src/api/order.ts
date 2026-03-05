@@ -22,6 +22,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   coverImage?: string;
+  sku?: any; // Include nested sku relation
 }
 
 export interface Order {
@@ -47,6 +48,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const orderApi = {
+  createOrder: (skuIds: string[]) => request.post<{ orderNo: string; orderId?: string }>('/order', { skuIds }),
   checkout: (data: CreateOrderPayload) => request.post<{ orderNo: string }>('/order/checkout', data),
   getMyOrders: (params: GetMyOrdersParams) => request.get<PaginatedResponse<Order>>('/order/my-orders', { params }),
   confirmReceipt: (id: string) => request.post(`/order/my-orders/${id}/confirm`),

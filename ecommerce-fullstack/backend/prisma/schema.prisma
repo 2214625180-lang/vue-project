@@ -84,6 +84,7 @@ model ProductSku {
   stock      Int
   specs      Json
   coverImage String?
+  orderItems OrderItem[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
@@ -108,6 +109,7 @@ model OrderItem {
   orderId   String
   order     Order    @relation(fields: [orderId], references: [id])
   skuId     String
+  sku       ProductSku @relation(fields: [skuId], references: [id])
   spuName   String
   skuSpecs  Json
   price     Decimal

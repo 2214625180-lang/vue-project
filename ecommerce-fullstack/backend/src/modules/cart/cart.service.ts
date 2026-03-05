@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
-import { PrismaService } from '../../../prisma.service';
+import { PrismaService } from '../../prisma.service';
 import { ProductSku } from '@prisma/client';
 
 export interface CartItem extends ProductSku {
@@ -32,6 +32,12 @@ export class CartService {
       newQuantity += data.quantity;
     }
 
+    // Verify SKU exists in DB before adding (optional but good for consistency)
+    // If not doing this check, the cart might contain invalid items which are filtered out in getCart
+    // For safety against 500 errors in getCart later:
+    // We don't strictly need to fetch spu here unless we want to validate it exists.
+    // The current logic seems fine for Redis-first approach.
+    
     const value = JSON.stringify({
       quantity: newQuantity,
       addedAt: Date.now(),
@@ -99,10 +105,11 @@ export class CartService {
       const sku = skuMap.get(skuId);
       if (sku) {
         const { quantity } = JSON.parse(jsonVal);
+        const { spu, ...skuData } = sku;
         items.push({
-          ...sku,
-          spuName: sku.spu.name,
-          spuId: sku.spu.id,
+          ...skuData,
+          spuName: spu.name,
+          spuId: spu.id,
           quantity,
         });
       } else {

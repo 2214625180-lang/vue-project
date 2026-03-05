@@ -14,12 +14,20 @@ import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
     BullModule.forRoot({
       redis: process.env.REDIS_URL || 'redis://localhost:6379',
     }),
     RedisModule.forRoot({
       type: 'single',
       url: process.env.REDIS_URL || 'redis://localhost:6379',
+      options: {
+        connectTimeout: 5000,
+        maxRetriesPerRequest: 3,
+      }
     }),
     AuthModule,
     UserModule,
@@ -29,10 +37,6 @@ import { join } from 'path';
     AddressModule,
     OrderModule,
     PaymentModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'public'), 
-      serveRoot: '/', 
-    }),
   ],
 })
 export class AppModule {}
