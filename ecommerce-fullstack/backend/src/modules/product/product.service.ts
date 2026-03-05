@@ -115,11 +115,12 @@ export class ProductService {
   }
 
   async getProducts(params: GetProductsDto) {
-    const { page = 1, limit = 10, keyword, categoryId, status } = params;
+    // 1. 临时去掉 status 的解构，防止商品因为“未上架”状态被隐藏
+    const { page = 1, limit = 10, keyword, categoryId } = params; 
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductSpuWhereInput = {
-      ...(status && { status }),
+      // ...(status && { status }), // 🕵️‍♂️ 临时注释掉：强行查出所有商品，不管上没上架！
       ...(categoryId && { categoryId }),
       ...(keyword && {
         OR: [
@@ -138,6 +139,7 @@ export class ProductService {
         orderBy: { createdAt: 'desc' },
         include: {
           category: true,
+          skus: true, // 🚀 极其关键：必须把 SKU 挂载出来！前端全靠它显示价格和图片！
         },
       }),
     ]);
@@ -149,7 +151,6 @@ export class ProductService {
       limit,
     };
   }
-
   async getAllCategories() {
     return this.prisma.category.findMany({
       orderBy: { createdAt: 'desc' },
