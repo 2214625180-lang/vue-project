@@ -16,8 +16,13 @@ export class OrderController {
   }
 
   @Post()
-  async createOrder(@CurrentUser() user: any, @Body('skuIds') skuIds: string[]) {
-    return this.orderService.createOrderFromCart(user.userId, skuIds);
+  async createOrder(@CurrentUser() user: any, @Body() body: CreateOrderDto) {
+    // If addressId is provided, use direct createOrder logic
+    if (body.addressId) {
+      return this.orderService.createOrder(user.userId, body);
+    }
+    // Fallback to auto-address logic
+    return this.orderService.createOrderFromCart(user.userId, body.skuIds);
   }
 
   @Post('checkout')

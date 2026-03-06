@@ -93,18 +93,18 @@ const fetchProducts = async () => {
   loading.value = true;
   try {
     const res = await shopApi.getProducts(page.value, limit);
-    console.log('🚀 Products API Response:', res);
+    console.log('🚀 获取商品列表 API Response:', res);
     // Robust extraction: handle different possible wrapper structures
     const data = (res as any);
     products.value = data.items || data.data?.items || data.data || [];
     
     // Safety check: ensure it's an array
     if (!Array.isArray(products.value)) {
-      console.warn('Expected array for products but got:', products.value);
+      console.warn('获取商品列表失败：返回数据格式错误，预期数组但 got:', products.value);
       products.value = [];
     }
   } catch (error) {
-    console.error('Failed to fetch products:', error);
+    console.error('获取商品列表失败:', error);
     products.value = [];
   } finally {
     loading.value = false;
@@ -123,7 +123,7 @@ const goToDetail = (id: string) => {
 
 const handleAddToCart = async (product: any) => {
   if (!authStore.isAuthenticated) {
-    ElMessage.warning('Please login to add items to cart');
+    ElMessage.warning('请先登录才能添加商品到购物车');
     router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
     return;
   }
@@ -132,11 +132,11 @@ const handleAddToCart = async (product: any) => {
   if (product.defaultSkuId) {
      try {
        await cartApi.addToCart(product.defaultSkuId, 1);
-       ElMessage.success('Added to cart successfully');
+       ElMessage.success('商品已成功添加到购物车');
        return;
      } catch (error) {
        console.error(error);
-       ElMessage.error('Failed to add to cart');
+       ElMessage.error('添加商品到购物车失败');
        return;
      }
   }

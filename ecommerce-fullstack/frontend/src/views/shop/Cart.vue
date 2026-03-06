@@ -231,8 +231,7 @@ const submitOrder = async () => {
   submitting.value = true;
   try {
     const skuIds = selectedItems.value.map(i => i.id);
-    await orderApi.createOrder(skuIds); 
-    
+    // Removed duplicate call that was clearing the cart
     await orderApi.createOrder(skuIds, selectedAddressId.value); 
     ElMessage.success('订单创建成功！');
     checkoutVisible.value = false;

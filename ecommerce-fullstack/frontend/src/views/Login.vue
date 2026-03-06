@@ -77,7 +77,7 @@ const handleLogin = async () => {
           password: loginForm.password
         });
         if (success) {
-          ElMessage.success('Login successful');
+          ElMessage.success('登录成功');
           const redirect = router.currentRoute.value.query.redirect as string;
           router.push(redirect || '/');
         } else {
@@ -101,7 +101,7 @@ const handleRegister = async () => {
           password: registerForm.password
         });
         if (success) {
-          ElMessage.success('Registration successful, please login');
+          ElMessage.success('注册成功，请登录');
           activeTab.value = 'login';
         }
       } catch (e: any) {

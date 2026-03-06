@@ -7,7 +7,7 @@ import { CartService } from '../cart/cart.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { GetMyOrdersDto } from './dto/get-my-orders.dto';
 import { InventoryShortageException } from './exceptions/inventory-shortage.exception';
-
+import { InternalServerErrorException } from '@nestjs/common';
 @Injectable()
 export class OrderService {
   constructor(
@@ -155,49 +155,59 @@ export class OrderService {
     return { orderNo, orderId: createdOrder.id }; // Return orderId as well
   }
 
-  async getMyOrders(userId: string, dto: GetMyOrdersDto) {
-    const { page = 1, limit = 10, status } = dto;
-    const skip = (page - 1) * limit;
+  
 
-    const where: Prisma.OrderWhereInput = { userId };
-    if (status) {
-      where.status = status;
-    }
+  // ...
 
-    const [total, items] = await this.prisma.$transaction([
-      this.prisma.order.count({ where }),
-      this.prisma.order.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { 
-          items: {
-            include: {
-              sku: {
-                include: {
-                  spu: true 
-                }
+  async getMyOrders(userId: string, dto: any) {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const where: any = { userId };
+      
+      // 🚀 终极极简过滤：只要不是 ALL，前端传什么（PENDING/PAID/SHIPPED），咱们就查什么！
+      if (dto.status && String(dto.status).toUpperCase() !== 'ALL') {
+        where.status = String(dto.status).toUpperCase();
+      }
+
+      const [total, items] = await this.prisma.$transaction([
+        this.prisma.order.count({ where }),
+        this.prisma.order.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: { 
+            items: { 
+              include: {
+                sku: { include: { spu: true } }
               }
             }
-          }
-        },
-      }),
-    ]);
+          },
+        }),
+      ]);
 
-    // Flatten image URLs for frontend consumption
-    const mappedItems = items.map(order => ({
-      ...order,
-      items: order.items.map(item => ({
-        ...item,
-        // Inject image URL from nested relations
-        image: item.sku?.coverImage || (item.sku?.spu as any)?.mainImage || null,
-        // Also provide full spu info just in case
-        product: item.sku?.spu
-      }))
-    }));
+      const mappedItems = items.map((order: any) => {
+        const { items: rawItems, ...rest } = order;
+        return {
+          ...rest,
+          items: (rawItems || []).map((item: any) => ({
+            ...item,
+            image: item.sku?.coverImage || item.sku?.spu?.mainImage || null,
+            product: item.sku?.spu || null
+          }))
+        };
+      });
 
-    return { items: mappedItems, total, page, limit };
+      return { items: mappedItems, total, page, limit };
+      
+    } catch (error) {
+      // 🚨 如果这把还报 500，这里就是破案的唯一线索！
+      console.error('❌ [获取订单彻底崩溃] 请看这里抓真凶:', error);
+      throw new InternalServerErrorException('获取订单失败');
+    }
   }
 
   async findOne(userId: string, orderNo: string) {
