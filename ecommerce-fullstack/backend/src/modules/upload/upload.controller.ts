@@ -23,7 +23,8 @@ export class UploadController {
     // Return local URL
     // In production, you would upload to OSS/S3 here
     // For local dev, we just return the path to ServeStatic
-    const url = `http://localhost:3000/uploads/${file.filename}`;
-    return { url };
+    // ✅ 正确代码（使用相对路径，斜杠开头）
+const fileUrl = `/uploads/${file.filename}`;
+    return { fileUrl };
   }
 }
