@@ -51,60 +51,31 @@ const customUpload = async (options: UploadRequestOptions) => {
   const authStore = useAuthStore();
   
   try {
-    // Direct Axios call to ensure multipart/form-data handling
-    const res = await axios.post('http://localhost:3000/api/upload/image', formData, {
+    // 🚨 修改 1：去掉了 http://localhost:3000，直接使用相对路径 /api/...
+    // Nginx 会自动把这个请求转发给后端的 NestJS
+    const res = await axios.post('/api/upload/image', formData, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
         'Content-Type': 'multipart/form-data',
       },
     });
 
-    // Handle NestJS unified response { code: 200, data: { url: '...' } }
-    const uploadedUrl = res.data.data.url; 
+    // 🚨 修改 2：匹配后端返回的字段名（后端叫 fileUrl，不是 url）
+    // 注意：如果有全局拦截器包裹了响应体，通常在 res.data.data 里；如果没有，就在 res.data 里。
+    const uploadedUrl = res.data?.data?.fileUrl || res.data?.fileUrl; 
     
-    // In dev mode, prepend localhost if it's a relative path
-    const fullUrl = uploadedUrl.startsWith('http') 
-      ? uploadedUrl 
-      : `http://localhost:3000${uploadedUrl}`;
-
-    imageUrl.value = fullUrl;
-    emit('update:modelValue', fullUrl);
-    ElMessage.success('Upload success');
+    // 🚨 修改 3：直接使用后端返回的相对路径（比如 /api/uploads/xxx.jpg），不再拼接 localhost
+    if (uploadedUrl) {
+      imageUrl.value = uploadedUrl;
+      emit('update:modelValue', uploadedUrl);
+      ElMessage.success('Upload success');
+    } else {
+      throw new Error('未获取到图片地址');
+    }
+    
   } catch (error) {
-    console.error(error);
+    console.error('上传完整报错:', error);
     ElMessage.error('Upload failed');
   }
 };
 </script>
-
-<style scoped>
-.avatar-uploader .avatar {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-</style>
-
-<style>
-.avatar-uploader .el-upload {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--el-transition-duration-fast);
-}
-
-.avatar-uploader .el-upload:hover {
-  border-color: var(--el-color-primary);
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 148px;
-  height: 148px;
-  text-align: center;
-}
-</style>
