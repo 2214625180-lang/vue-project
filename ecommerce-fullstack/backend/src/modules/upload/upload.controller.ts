@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  UploadedFile,
-  UseInterceptors,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,16 +9,12 @@ export class UploadController {
 
   @Post('image')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file', { dest: './uploads' })) // Save to local uploads folder
+  @UseInterceptors(FileInterceptor('file', { dest: './uploads' })) 
   async uploadImage(
     @UploadedFile()
     file: Express.Multer.File,
   ) {
-    // Return local URL
-    // In production, you would upload to OSS/S3 here
-    // For local dev, we just return the path to ServeStatic
-    // ✅ 正确代码（使用相对路径，斜杠开头）
-const fileUrl = `/uploads/${file.filename}`;
+    const fileUrl = `/api/uploads/${file.filename}`;
     return { fileUrl };
   }
 }
