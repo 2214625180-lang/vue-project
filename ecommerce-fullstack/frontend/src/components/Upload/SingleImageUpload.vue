@@ -51,8 +51,6 @@ const customUpload = async (options: UploadRequestOptions) => {
   const authStore = useAuthStore();
   
   try {
-    // 🚨 修改 1：去掉了 http://localhost:3000，直接使用相对路径 /api/...
-    // Nginx 会自动把这个请求转发给后端的 NestJS
     const res = await axios.post('/api/upload/image', formData, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
@@ -60,19 +58,22 @@ const customUpload = async (options: UploadRequestOptions) => {
       },
     });
 
-    // 🚨 修改 2：匹配后端返回的字段名（后端叫 fileUrl，不是 url）
-    // 注意：如果有全局拦截器包裹了响应体，通常在 res.data.data 里；如果没有，就在 res.data 里。
+    // 🚨 加上这行：让我们看看后端到底返回了什么形状的数据！
+    console.log('完整的后端返回数据:', res.data); 
+    // 🚨 核心修复：后端你写的是 return { fileUrl }。
+    // 因为你有 TransformInterceptor，所以外面通常包了一层 data。
+    // 这里我们把可能的路径都写上，确保万无一失：
     const uploadedUrl = res.data?.data?.fileUrl || res.data?.fileUrl; 
     
-    // 🚨 修改 3：直接使用后端返回的相对路径（比如 /api/uploads/xxx.jpg），不再拼接 localhost
+    console.log('提取到的图片地址:', uploadedUrl); // 看看这次还是不是 undefined
+
     if (uploadedUrl) {
       imageUrl.value = uploadedUrl;
       emit('update:modelValue', uploadedUrl);
       ElMessage.success('Upload success');
     } else {
-      throw new Error('未获取到图片地址');
+      ElMessage.error('上传成功，但前端未能正确读取图片地址');
     }
-    
   } catch (error) {
     console.error('上传完整报错:', error);
     ElMessage.error('Upload failed');
