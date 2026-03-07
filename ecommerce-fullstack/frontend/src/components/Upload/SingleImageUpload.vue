@@ -55,12 +55,10 @@ const customUpload = async (options: UploadRequestOptions) => {
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
         'Content-Type': 'multipart/form-data',
+        timeout: 60000,
       },
     });
-
-    // 🚨 终极精准提取：连续拆开两个 data 盒子！
     const uploadedUrl = res.data.data.fileUrl; 
-    
     console.log('✅ 终于拿到的图片地址:', uploadedUrl); 
 
     if (uploadedUrl) {
