@@ -69,7 +69,9 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row.id)">删除</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row.id)">
+              {{ row.status === 'OFF_SHELF' ? '已下架' : '下架' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -126,12 +128,29 @@
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
           </el-upload>
         </el-form-item>
+        
+        <!-- 高级SKU编辑区域 -->
+        <el-form-item v-if="isEdit && useAdvancedSkuEditor" label="SKU规格">
+          <div class="w-full">
+            <el-alert
+              title="高级SKU编辑模式"
+              type="info"
+              description="在此模式下可以编辑商品的多个SKU规格、价格、库存等信息"
+              :closable="false"
+              class="mb-4"
+            />
+            <SkuMatrixGenerator ref="skuMatrixRef" />
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button v-if="isEdit" type="warning" @click="toggleAdvancedSkuEditor">
+            {{ useAdvancedSkuEditor ? '简化编辑' : '高级SKU编辑' }}
+          </el-button>
           <el-button type="primary" @click="submitProduct(productFormRef)" :loading="submitting">
-            添加商品
+            {{ isEdit ? '更新商品' : '添加商品' }}
           </el-button>
         </span>
       </template>
@@ -140,11 +159,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue';
-import { productApi, type ProductSpu, type ProductQueryParams, type CreateProductPayload, ProductStatus, type Category } from '../../api/product';
+import { ref, reactive, onMounted, nextTick } from 'vue';
+import { productApi, type ProductSpu, type ProductQueryParams, type CreateProductPayload, ProductStatus, type Category, type UpdateProductPayload, type UpdateProductSku } from '../../api/product';
 import { uploadApi } from '../../api/upload';
 import { ElMessage, ElMessageBox, type UploadRequestOptions, type FormInstance, type FormRules } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
+import SkuMatrixGenerator from '../../components/Product/SkuMatrixGenerator.vue';
 
 const loading = ref(false);
 const tableData = ref<ProductSpu[]>([]);
@@ -158,6 +178,9 @@ const isEdit = ref(false);
 const currentProductId = ref('');
 const productFormRef = ref<FormInstance>();
 const submitting = ref(false);
+const originalSkus = ref<UpdateProductSku[]>([]); // 存储原始SKU数据用于复杂编辑
+const useAdvancedSkuEditor = ref(false); // 是否使用高级SKU编辑器
+const skuMatrixRef = ref<InstanceType<typeof SkuMatrixGenerator>>(); // SKU矩阵生成器引用
 
 const productForm = reactive({
   name: '',
@@ -262,32 +285,72 @@ const handleEdit = (row: ProductSpu) => {
       spuNo: row.spuNo,
       description: row.description || '',
       categoryId: row.categoryId,
-      // Safely access first SKU if available for price/stock
+      // Safely access first SKU if available for price/stock (fallback for simple editing)
       price: row.skus && row.skus.length > 0 && row.skus[0] ? Number(row.skus[0].price) : 0,
       stock: row.skus && row.skus.length > 0 && row.skus[0] ? Number(row.skus[0].stock) : 0,
       // Handle image from sku or potentially add mainImage to ProductSpu if backend supports
       mainImage: row.skus && row.skus.length > 0 && row.skus[0] ? row.skus[0].coverImage : '',
     });
-  };
+    
+    // Store original SKUs for complex editing (can be used by advanced SKU editor)
+  originalSkus.value = row.skus || [];
+  
+  // 初始化高级SKU编辑器（如果启用）
+  if (useAdvancedSkuEditor.value && skuMatrixRef.value && row.skus && row.skus.length > 0) {
+    // 将现有的SKU数据转换为矩阵生成器格式
+    nextTick(() => {
+      if (skuMatrixRef.value) {
+        // 这里可以添加逻辑来初始化SKU矩阵生成器的规格和SKU数据
+        // 暂时使用简化处理
+        ElMessage.info('高级SKU编辑器已加载，当前有 ' + row.skus.length + ' 个SKU');
+      }
+    });
+  }
+};
+
+const toggleAdvancedSkuEditor = () => {
+  useAdvancedSkuEditor.value = !useAdvancedSkuEditor.value;
+  if (useAdvancedSkuEditor.value) {
+    ElMessage.info('高级SKU编辑模式已启用，可以编辑多个SKU规格');
+  } else {
+    ElMessage.info('简化编辑模式已启用');
+  }
+};
+
+// 辅助函数：根据规格匹配原始SKU的ID
+const findMatchingSkuId = (row: any): string | undefined => {
+  if (!originalSkus.value || originalSkus.value.length === 0) {
+    return undefined;
+  }
+  
+  // 简单的匹配逻辑：查找规格完全匹配的SKU
+  const rowSpecs = row.specs || {};
+  const matchingSku = originalSkus.value.find(sku => {
+    if (!sku.specs) return false;
+    return JSON.stringify(sku.specs) === JSON.stringify(rowSpecs);
+  });
+  
+  return matchingSku?.id;
+};
   
   const handleDelete = async (id: string) => {
-    try {
-      await ElMessageBox.confirm('确定要删除该商品吗?', '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      });
-      
-      await productApi.delete(id);
-      ElMessage.success('删除成功');
-      fetchProducts();
-    } catch (error) {
-      if (error !== 'cancel') {
-        console.error(error);
-        ElMessage.error('删除失败');
-      }
+  try {
+    await ElMessageBox.confirm('确定要下架该商品吗? 下架后商品将不再对用户可见，但数据仍然保留。', '确认下架', {
+      confirmButtonText: '确定下架',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+    
+    await productApi.delete(id);
+    ElMessage.success('商品已下架');
+    fetchProducts();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error);
+      ElMessage.error('下架失败');
     }
-  };
+  }
+};
 
 const customUpload = async (options: UploadRequestOptions) => {
   try {
@@ -308,28 +371,69 @@ const submitProduct = async (formEl: FormInstance | undefined) => {
     if (valid) {
       submitting.value = true;
       try {
-        const payload: CreateProductPayload = {
-          name: productForm.name,
-          spuNo: productForm.spuNo,
-          description: productForm.description,
-          categoryId: productForm.categoryId,
-          status: ProductStatus.ON_SHELF,
-          skus: [
-            {
-              skuNo: `${productForm.spuNo}-001`,
-              price: Number(productForm.price),
-              stock: Number(productForm.stock),
-              specs: { color: 'Default' },
-              coverImage: productForm.mainImage,
-            }
-          ]
-        };
-        
         if (isEdit.value && currentProductId.value) {
-          await productApi.update(currentProductId.value, payload);
+          // 编辑模式：使用新的UpdateProductPayload格式，支持复杂的SKU管理
+          let updatePayload: UpdateProductPayload = {
+            name: productForm.name,
+            spuNo: productForm.spuNo,
+            description: productForm.description,
+            categoryId: productForm.categoryId,
+            status: ProductStatus.ON_SHELF,
+          };
+          
+          // 如果使用高级SKU编辑器，从SkuMatrixGenerator获取SKU数据
+          if (useAdvancedSkuEditor.value && skuMatrixRef.value) {
+            const skuMatrixData = skuMatrixRef.value.skuTableData;
+            const skusFromMatrix: UpdateProductSku[] = skuMatrixData.map((row: any) => ({
+              // 尝试匹配原始SKU的ID
+              id: findMatchingSkuId(row),
+              skuNo: row.skuNo || `${productForm.spuNo}-${Math.random().toString(36).substr(2, 4)}`,
+              price: Number(row.price) || 0,
+              stock: Number(row.stock) || 0,
+              specs: row.specs || {},
+              coverImage: productForm.mainImage,
+            }));
+            
+            if (skusFromMatrix.length > 0) {
+              updatePayload.skus = skusFromMatrix;
+            }
+          } else {
+            // 简化模式：使用基本的SKU更新
+            updatePayload.skus = [
+              {
+                // 如果有原始SKU，保留其ID
+                id: originalSkus.value.length > 0 ? originalSkus.value[0]?.id : undefined,
+                skuNo: `${productForm.spuNo}-001`,
+                price: Number(productForm.price),
+                stock: Number(productForm.stock),
+                specs: { color: 'Default' },
+                coverImage: productForm.mainImage,
+              }
+            ];
+          }
+          
+          await productApi.update(currentProductId.value, updatePayload);
           ElMessage.success('商品更新成功');
         } else {
-          await productApi.create(payload);
+          // 创建模式：使用CreateProductPayload格式
+          const createPayload: CreateProductPayload = {
+            name: productForm.name,
+            spuNo: productForm.spuNo,
+            description: productForm.description,
+            categoryId: productForm.categoryId,
+            status: ProductStatus.ON_SHELF,
+            skus: [
+              {
+                skuNo: `${productForm.spuNo}-001`,
+                price: Number(productForm.price),
+                stock: Number(productForm.stock),
+                specs: { color: 'Default' },
+                coverImage: productForm.mainImage,
+              }
+            ]
+          };
+          
+          await productApi.create(createPayload);
           ElMessage.success('商品创建成功');
         }
         

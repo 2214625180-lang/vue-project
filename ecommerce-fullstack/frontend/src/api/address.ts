@@ -11,7 +11,6 @@ export interface UserAddress {
   isDefault: boolean;
   createdAt?: string;
 }
-
 export interface CreateAddressPayload {
   receiverName: string;
   phone: string;

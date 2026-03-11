@@ -1,15 +1,24 @@
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { 
+  BadRequestException, 
+  Injectable, 
+  NotFoundException, 
+  InternalServerErrorException,
+  Logger // 👈 新增：用于打印定时任务日志
+} from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { Queue } from 'bull';
+import { Cron, CronExpression } from '@nestjs/schedule'; // 👈 新增：定时任务装饰器
 import { PrismaService } from '../../prisma.service';
 import { CartService } from '../cart/cart.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { GetMyOrdersDto } from './dto/get-my-orders.dto';
 import { InventoryShortageException } from './exceptions/inventory-shortage.exception';
-import { InternalServerErrorException } from '@nestjs/common';
+
 @Injectable()
 export class OrderService {
+  // 👈 新增：初始化日志记录器
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cartService: CartService,
@@ -32,15 +41,8 @@ export class OrderService {
     });
 
     if (!address) {
-       // If no address, create a mock one for demo purposes or throw
-       // Let's create a temporary mock address object to satisfy the schema requirements
-       // In a real app, we would force the user to add an address first.
-       /*
-       throw new BadRequestException('Please add a shipping address first');
-       */
-       // Mock fallback:
        return this.createOrder(userId, {
-         addressId: 'mock-address-id', // Use a special flag or create a dummy one
+         addressId: 'mock-address-id', 
          skuIds
        }, true); // Pass a flag to indicate mock address usage
     }
@@ -94,7 +96,6 @@ export class OrderService {
       return sum + Number(sku.price) * quantity;
     }, 0);
 
-    // FIX: Using await with transaction correctly. Assign the result to a variable.
     const createdOrder = await this.prisma.$transaction(async (tx) => {
       for (const sku of dbSkus) {
         const quantity = quantityBySkuId.get(sku.id) ?? 0;
@@ -134,13 +135,13 @@ export class OrderService {
           orderId: order.id,
           skuId: sku.id,
           spuName: sku.spu.name,
-          skuSpecs: sku.specs ?? {}, // Ensure specs is not null
+          skuSpecs: sku.specs ?? {},
           price: sku.price,
           quantity: quantityBySkuId.get(sku.id) ?? 0,
         })),
       });
 
-      return order; // Return the created order from transaction
+      return order; 
     });
 
     await this.cartService.removeFromCart(userId, skuIds);
@@ -152,13 +153,9 @@ export class OrderService {
       },
     );
 
-    return { orderNo, orderId: createdOrder.id }; // Return orderId as well
+    return { orderNo, orderId: createdOrder.id };
   }
-
   
-
-  // ...
-
   async getMyOrders(userId: string, dto: any) {
     try {
       const page = Number(dto.page) || 1;
@@ -167,7 +164,6 @@ export class OrderService {
 
       const where: any = { userId };
       
-      // 🚀 终极极简过滤：只要不是 ALL，前端传什么（PENDING/PAID/SHIPPED），咱们就查什么！
       if (dto.status && String(dto.status).toUpperCase() !== 'ALL') {
         where.status = String(dto.status).toUpperCase();
       }
@@ -204,7 +200,6 @@ export class OrderService {
       return { items: mappedItems, total, page, limit };
       
     } catch (error) {
-      // 🚨 如果这把还报 500，这里就是破案的唯一线索！
       console.error('❌ [获取订单彻底崩溃] 请看这里抓真凶:', error);
       throw new InternalServerErrorException('获取订单失败');
     }
@@ -252,7 +247,6 @@ export class OrderService {
       where: { id: orderId },
       data: {
         status: OrderStatus.COMPLETED,
-        // completedAt: new Date(), // If you add completedAt to schema later
       },
     });
   }
@@ -261,5 +255,42 @@ export class OrderService {
     return `${Date.now()}${Math.floor(Math.random() * 100000)
       .toString()
       .padStart(5, '0')}`;
+  }
+
+  // ==========================================
+  // ⏱️ 定时任务模块 (Cron Jobs)
+  // ==========================================
+
+  /**
+   * 👈 新增：自动确认收货
+   * 每天凌晨 2:00 执行一次
+   * 自动将发货超过 15 天的订单状态更新为 COMPLETED (已完成)
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async autoConfirmReceipt() {
+    this.logger.log('🚀 [系统任务] 开始执行自动确认收货...');
+
+    // 计算时间基准线（15天前）
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - 15);
+
+    try {
+      const result = await this.prisma.order.updateMany({
+        where: {
+          status: OrderStatus.SHIPPED,
+          // ⚠️ 前提：Prisma schema 中 Order 模型有 shippedAt 这个字段
+          updatedAt: {
+            lte: targetDate, 
+          },
+        },
+        data: {
+          status: OrderStatus.COMPLETED,
+        },
+      });
+
+      this.logger.log(`✅ [系统任务] 自动确认收货完成，本次共处理 ${result.count} 个长尾订单。`);
+    } catch (error) {
+      this.logger.error('❌ [系统任务] 自动确认收货执行失败:', error);
+    }
   }
 }

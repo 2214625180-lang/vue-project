@@ -3,15 +3,13 @@ import { PrismaService } from '../../prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { ProductStatus, Prisma } from '@prisma/client';
-
+import { UpdateProductDto } from './dto/update-product.dto';
+import { NotFoundException } from '@nestjs/common';
 @Injectable()
 export class ProductService {
   constructor(private prisma: PrismaService) {}
-
   async createProduct(createProductDto: CreateProductDto) {
     const { skus, ...spuData } = createProductDto;
-
-    // Handle optional categoryId
     let categoryId = spuData.categoryId;
     if (!categoryId) {
       // Find first available category or create a default one
@@ -19,7 +17,6 @@ export class ProductService {
       if (defaultCategory) {
         categoryId = defaultCategory.id;
       } else {
-        // Create a default category if none exists
         const newCategory = await this.prisma.category.create({
           data: {
             name: '默认分类',
@@ -28,7 +25,6 @@ export class ProductService {
         categoryId = newCategory.id;
       }
     }
-
     return this.prisma.$transaction(async (prisma) => {
       const productSpu = await prisma.productSpu.create({
         data: {
@@ -51,56 +47,74 @@ export class ProductService {
     });
   }
 
-  async updateProduct(id: string, updateProductDto: Partial<CreateProductDto>) {
+  async updateProduct(id: string, updateProductDto: UpdateProductDto) {
     const { skus, ...spuData } = updateProductDto;
-
-    // Handle optional categoryId
     let categoryId = spuData.categoryId;
-    if (categoryId) {
-       // Optional: validate category exists
+    let skusUpdateOperations = {};
+    if (skus && skus.length > 0) {
+      // 1. 带有 ID 的是旧规格，需要被更新
+      const skusWithId = skus.filter((s) => s.id);
+      // 2. 没有 ID 的是新加的规格，需要被创建
+      const skusWithoutId = skus.filter((s) => !s.id);
+      // 3. 提取出所有前端保留的有效旧 ID
+      const incomingSkuIds = skusWithId.map((s) => s.id);
+
+      skusUpdateOperations = {
+        skus: {
+          // 🔪 动作 A：清理被用户删掉的规格
+          // 逻辑：把数据库里属于当前 SPU，但不在 incomingSkuIds 列表里的 SKU 删掉
+          deleteMany: {
+            id: {
+              notIn: incomingSkuIds.length > 0 ? incomingSkuIds : [''], // 防空数组查全表
+            },
+          },
+
+          // 🆕 动作 B：创建全新增加的规格
+          create: skusWithoutId.map((sku) => ({
+            ...sku,
+            specs: sku.specs as any,
+          })),
+
+          // ♻️ 动作 C：精准更新保留下来的旧规格（只改价格、库存等，绝对不改 ID）
+          update: skusWithId.map(({ id: skuId, ...skuData }) => ({
+            where: { id: skuId },
+            data: {
+              ...skuData,
+              specs: skuData.specs as any,
+            },
+          })),
+        },
+      };
+    } else if (skus && skus.length === 0) {
+      skusUpdateOperations = {
+        skus: {
+          deleteMany: {},
+        },
+      };
     }
 
-    return this.prisma.$transaction(async (prisma) => {
-      const productSpu = await prisma.productSpu.update({
-        where: { id },
-        data: {
-          ...spuData,
-          // Only update categoryId if provided
-          ...(categoryId && { categoryId }),
-          // If skus are provided, we might need a strategy (replace all, update existing, etc.)
-          // For simplicity here, if skus are provided, we delete old ones and create new ones (Full Replace Strategy)
-          // OR we can just ignore SKU updates here for now if the frontend doesn't support complex SKU editing yet.
-          // Let's implement full replace for SKUs if provided to keep it consistent with create.
-          ...(skus && {
-            skus: {
-              deleteMany: {},
-              create: skus.map((sku) => ({
-                ...sku,
-                specs: sku.specs as any,
-              })),
-            },
-          }),
-        },
-        include: {
-          skus: true,
-        },
-      });
-      return productSpu;
+    const productSpu = await this.prisma.productSpu.update({
+      where: { id },
+      data: {
+        ...spuData,
+        ...(categoryId && { categoryId }),
+        ...skusUpdateOperations,
+      },
+      include: {
+        skus: true,
+      },
     });
+
+    return productSpu;
   }
 
   async deleteProduct(id: string) {
-    // First check if product exists
+    // 检查存在性
     const product = await this.prisma.productSpu.findUnique({ where: { id } });
-    if (!product) {
-      throw new Error('Product not found');
-    }
-
-    // Try to delete SKUs first
-    await this.prisma.productSku.deleteMany({ where: { spuId: id } });
-    
-    return this.prisma.productSpu.delete({
+    if (!product) throw new NotFoundException('Product not found');
+    return this.prisma.productSpu.update({
       where: { id },
+      data: { status: ProductStatus.OFF_SHELF }, 
     });
   }
 
@@ -114,13 +128,11 @@ export class ProductService {
     });
   }
 
-  async getProducts(params: GetProductsDto) {
-    // 1. 临时去掉 status 的解构，防止商品因为“未上架”状态被隐藏
-    const { page = 1, limit = 10, keyword, categoryId } = params; 
+  async getProducts(params: GetProductsDto, isAdminContext = false) {
+    const { page = 1, limit = 10, keyword, categoryId, status } = params; 
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductSpuWhereInput = {
-      // ...(status && { status }), // 🕵️‍♂️ 临时注释掉：强行查出所有商品，不管上没上架！
       ...(categoryId && { categoryId }),
       ...(keyword && {
         OR: [
@@ -130,26 +142,24 @@ export class ProductService {
       }),
     };
 
-    const [total, items] = await Promise.all([
+    // 🔒 核心业务防御逻辑
+    if (isAdminContext) {
+      // B端：如果后台传了 status 就按 status 查，没传就查全部（包括下架的）
+      if (status) where.status = status; 
+      where.status = ProductStatus.ON_SHELF;
+    } else {
+      where.status = ProductStatus.ON_SHELF;
+    }
+    const [total, items] = await this.prisma.$transaction([
       this.prisma.productSpu.count({ where }),
       this.prisma.productSpu.findMany({
-        where,
-        skip,
-        take: limit,
+        where, skip, take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          category: true,
-          skus: true, // 🚀 极其关键：必须把 SKU 挂载出来！前端全靠它显示价格和图片！
-        },
+        include: { category: true, skus: true },
       }),
     ]);
 
-    return {
-      items,
-      total,
-      page,
-      limit,
-    };
+    return { items, total, page, limit };
   }
   async getAllCategories() {
     return this.prisma.category.findMany({

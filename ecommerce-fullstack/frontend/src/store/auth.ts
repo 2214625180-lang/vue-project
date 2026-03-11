@@ -14,10 +14,6 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await authApi.login(payload);
         console.log('🔑 Login Response:', response);
-
-        // Robust token extraction
-        // NestJS typically returns { access_token: "..." }
-        // Axios interceptor might return data directly or wrapped.
         const data = response as any;
         const token = data.access_token || data.token || data.data?.access_token || data.data?.token;
         
@@ -32,7 +28,7 @@ export const useAuthStore = defineStore('auth', {
         console.error('Token not found in login response:', response);
         return false;
       } catch (error) {
-        console.error('Login failed', error);
+        console.error('登录失败', error);
         throw error; // Re-throw to let component handle specific error messages
       }
     },

@@ -130,7 +130,6 @@ const specList = reactive<SpecItem[]>([
   { name: 'Color', values: ['Red', 'Blue'] },
   { name: 'Size', values: ['S', 'M'] }
 ]);
-
 // UI State for dynamic tags
 const inputVisible = ref<boolean[]>([]);
 const inputValue = ref<string[]>([]);

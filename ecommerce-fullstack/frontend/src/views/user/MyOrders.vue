@@ -19,6 +19,15 @@
       </div>
     </div>
 
+    <!-- 自动收货规则提示 -->
+    <el-alert
+      title="订单自动确认收货规则"
+      type="info"
+      description="已发货的订单将在15天后自动确认收货，请及时确认收货以保障您的权益"
+      :closable="false"
+      class="mb-4"
+    />
+
     <el-tabs v-model="activeStatus" @tab-change="handleTabChange" class="mb-6">
       <el-tab-pane label="全部订单" name=""></el-tab-pane>
       <el-tab-pane label="待付款" name="PENDING"></el-tab-pane>
@@ -50,6 +59,9 @@
     order.status === 'CANCELLED' ? '已取消' : order.status
   }}
 </el-tag>
+<span v-if="order.status === 'COMPLETED'" class="text-xs text-gray-500 ml-2">
+  (发货15天后自动确认收货)
+</span>
             </div>
           </template>
 
@@ -104,6 +116,15 @@
                 >
                   确认收货
                 </el-button>
+                <el-tooltip 
+                  v-if="order.status === 'SHIPPED'" 
+                  :content="`发货15天后将自动确认收货，预计时间：${getAutoConfirmDate(order.createdAt)}`"
+                  placement="top"
+                >
+                  <el-icon class="ml-2 text-gray-400 cursor-help">
+                    <InfoFilled />
+                  </el-icon>
+                </el-tooltip>
                 <span v-if="order.status === 'CANCELLED'" class="text-sm text-gray-500">
                   订单已关闭（超时未支付）
                 </span>
@@ -135,6 +156,7 @@ import { orderApi, type Order, type OrderStatus, type PaginatedResponse } from '
 import { paymentApi } from '../../api/payment'; // Assuming this exists or we add it
 import { uploadApi } from '../../api/upload'; // Import upload API
 import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus';
+import { InfoFilled } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const loading = ref(false);
@@ -243,6 +265,13 @@ const getStatusType = (status: string) => {
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString();
+};
+
+// 计算预计自动收货时间（发货后15天）
+const getAutoConfirmDate = (shippedDate: string): string => {
+  const date = new Date(shippedDate);
+  date.setDate(date.getDate() + 15);
+  return date.toLocaleDateString();
 };
 
 const parseSpecs = (specs: unknown): Record<string, string> => {

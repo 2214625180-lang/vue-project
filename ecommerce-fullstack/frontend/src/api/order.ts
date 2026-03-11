@@ -34,6 +34,9 @@ export interface Order {
   status: OrderStatus;
   items: OrderItem[];
   createdAt: string;
+  updatedAt?: string;
+  trackingNumber?: string;
+  courierCompany?: string;
 }
 
 export interface GetMyOrdersParams {

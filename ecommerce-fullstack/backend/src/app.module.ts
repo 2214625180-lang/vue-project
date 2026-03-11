@@ -11,6 +11,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bull';
 import { join } from 'path';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { join } from 'path';
     AddressModule,
     OrderModule,
     PaymentModule,
+    ScheduleModule.forRoot(),
   ],
 })
 export class AppModule {}

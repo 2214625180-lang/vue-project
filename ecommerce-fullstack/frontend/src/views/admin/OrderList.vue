@@ -45,13 +45,24 @@
         </el-table-column>
         <el-table-column prop="status" label="订单状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ row.status === 'PENDING' ? '待支付' :
-                 row.status === 'PAID' ? '已支付' :
-                 row.status === 'SHIPPED' ? '已发货' :
-                 row.status === 'COMPLETED' ? '已完成' :
-                 row.status === 'CANCELLED' ? '已取消' : row.status }}
-            </el-tag>
+            <div class="flex items-center">
+              <el-tag :type="getStatusType(row.status)">
+                {{ row.status === 'PENDING' ? '待支付' :
+                   row.status === 'PAID' ? '已支付' :
+                   row.status === 'SHIPPED' ? '已发货' :
+                   row.status === 'COMPLETED' ? '已完成' :
+                   row.status === 'CANCELLED' ? '已取消' : row.status }}
+              </el-tag>
+              <el-tooltip 
+                v-if="row.status === 'SHIPPED'" 
+                content="发货15天后将自动确认收货"
+                placement="top"
+              >
+                <el-icon class="ml-1 text-gray-400 cursor-help">
+                  <InfoFilled />
+                </el-icon>
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="订单创建时间" width="180">
@@ -89,6 +100,13 @@
 
     <!-- Ship Dialog -->
     <el-dialog v-model="shipDialogVisible" title="发货订单" width="30%">
+      <el-alert
+        title="发货提醒"
+        type="info"
+        description="发货后15天将自动确认收货，请确保物流信息准确"
+        :closable="false"
+        class="mb-4"
+      />
       <el-form :model="shipForm" ref="shipFormRef" :rules="shipRules" label-width="140px">
         <el-form-item label="物流单号" prop="trackingNumber">
           <el-input v-model="shipForm.trackingNumber" />
@@ -113,6 +131,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { adminOrderApi, type AdminOrderQueryParams } from '../../api/admin-order';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import { InfoFilled } from '@element-plus/icons-vue';
 
 const loading = ref(false);
 const tableData = ref([]);
@@ -196,6 +215,13 @@ const getStatusType = (status: string) => {
     case 'CANCELLED': return 'info';
     default: return 'info';
   }
+};
+
+// 计算预计自动收货时间（发货后15天）
+const getAutoConfirmDate = (shippedDate: string): string => {
+  const date = new Date(shippedDate);
+  date.setDate(date.getDate() + 15);
+  return date.toLocaleDateString();
 };
 
 const handleShip = (row: any) => {

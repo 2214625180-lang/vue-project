@@ -79,10 +79,6 @@ const specTree = computed<SpecNode[]>(() => {
       });
     }
   });
-
-  // If no stock at all, we might want to show specs from 0-stock SKUs too, 
-  // but logically usually we iterate all SKUs.
-  // Ideally backend provides spec list, but here we derive from SKUs.
   if (specsMap.size === 0 && props.skus.length > 0) {
       props.skus.forEach((sku) => {
         Object.entries(sku.specs).forEach(([key, value]) => {
@@ -100,22 +96,7 @@ const specTree = computed<SpecNode[]>(() => {
   }));
 });
 
-// --- Logic: Availability Check ---
-/**
- * Determines if a specific spec option should be disabled based on current selections.
- * 
- * Algorithm:
- * 1. Create a hypothetical selection by merging current `selectedSpecs` with the target `(specKey, specValue)`.
- *    - Crucially, omit the target `specKey` from `selectedSpecs` first (to simulate switching value for this key).
- * 2. Check if there exists ANY SKU that:
- *    - Matches ALL entries in this hypothetical selection.
- *    - Has `stock > 0`.
- */
 const isOptionDisabled = (specKey: string, specValue: string): boolean => {
-  // 1. Construct the path to check
-  // We want to check if selecting (specKey: specValue) is valid given OTHER currently selected specs.
-  // So we take current selections, REMOVE the current specKey (because we are testing a value for it),
-  // and ADD the new value.
   const pathToCheck = { ...selectedSpecs.value, [specKey]: specValue };
 
   // 2. Find if any SKU matches this path
@@ -195,12 +176,8 @@ watch(matchedSku, (newSku) => {
   }
 });
 
-// Auto-select first available option for each spec if only one exists? 
-// Or default select? 
-// For now, keep it manual as per requirement "Simulate adding this specValue".
 
 </script>
 
 <style scoped>
-/* Scoped styles if needed, but Tailwind handles most */
 </style>
