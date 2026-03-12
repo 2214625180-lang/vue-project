@@ -21,15 +21,15 @@ export class UploadController {
     FileInterceptor('file', {
       // 🚨 2. 启用绝对路径硬盘存储：无论 PM2 怎么跑，死死锚定 ECS 上的 uploads 文件夹
      // 后端：修改 storage 配置
-storage: diskStorage({
-  // 🚨 直接写死 ECS 服务器上的绝对物理路径，彻底断绝找错文件夹的可能！
-  destination: '/root/vue-project/ecommerce-fullstack/backend/uploads',
-  filename: (req, file, callback) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = extname(file.originalname);
-    callback(null, `${uniqueSuffix}${ext}`);
-  },
-}),
+  storage: diskStorage({
+    // 🚨 动态获取绝对路径，避免硬编码，兼容本地和服务器环境
+    destination: join(process.cwd(), 'uploads'),
+    filename: (req, file, callback) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const ext = extname(file.originalname);
+      callback(null, `${uniqueSuffix}${ext}`);
+    },
+  }),
     }),
   )
   async uploadImage(

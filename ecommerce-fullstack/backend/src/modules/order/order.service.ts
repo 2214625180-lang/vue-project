@@ -256,16 +256,6 @@ export class OrderService {
       .toString()
       .padStart(5, '0')}`;
   }
-
-  // ==========================================
-  // ⏱️ 定时任务模块 (Cron Jobs)
-  // ==========================================
-
-  /**
-   * 👈 新增：自动确认收货
-   * 每天凌晨 2:00 执行一次
-   * 自动将发货超过 15 天的订单状态更新为 COMPLETED (已完成)
-   */
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async autoConfirmReceipt() {
     this.logger.log('🚀 [系统任务] 开始执行自动确认收货...');
@@ -278,7 +268,6 @@ export class OrderService {
       const result = await this.prisma.order.updateMany({
         where: {
           status: OrderStatus.SHIPPED,
-          // ⚠️ 前提：Prisma schema 中 Order 模型有 shippedAt 这个字段
           updatedAt: {
             lte: targetDate, 
           },

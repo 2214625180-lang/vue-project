@@ -128,34 +128,44 @@ export class ProductService {
     });
   }
 
-  async getProducts(params: GetProductsDto, isAdminContext = false) {
-    const { page = 1, limit = 10, keyword, categoryId, status } = params; 
+  async getProducts(params: any, isAdminContext = false) {
+    // 🛡️ 强制转换类型，防止 URL 传来的 "12" 变成字符串导致 Prisma 崩溃
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
     const skip = (page - 1) * limit;
+    const { keyword, categoryId, status } = params;
 
     const where: Prisma.ProductSpuWhereInput = {
       ...(categoryId && { categoryId }),
       ...(keyword && {
         OR: [
-          { name: { contains: keyword, mode: 'insensitive' } },
-          { spuNo: { contains: keyword, mode: 'insensitive' } },
+          { name: { contains: String(keyword), mode: 'insensitive' } },
+          { spuNo: { contains: String(keyword), mode: 'insensitive' } },
         ],
       }),
     };
 
-    // 🔒 核心业务防御逻辑
     if (isAdminContext) {
-      // B端：如果后台传了 status 就按 status 查，没传就查全部（包括下架的）
-      if (status) where.status = status; 
-      where.status = ProductStatus.ON_SHELF;
+      if (status) where.status = status;
+      // ⚠️ 如果你的 schema 没有 DELETED，请把下面这行注释掉
+      // where.status = { not: ProductStatus.DELETED }; 
     } else {
-      where.status = ProductStatus.ON_SHELF;
+      // C端：强制只查上架商品
+      // ⚠️ 请确保你的 Prisma 枚举中真实的叫法是 ON_SHELF
+      where.status = ProductStatus.ON_SHELF; 
     }
+
     const [total, items] = await this.prisma.$transaction([
       this.prisma.productSpu.count({ where }),
       this.prisma.productSpu.findMany({
-        where, skip, take: limit,
+        where,
+        skip,
+        take: limit, // 现在它 100% 是个 Number 了
         orderBy: { createdAt: 'desc' },
-        include: { category: true, skus: true },
+        include: {
+          category: true,
+          skus: true,
+        },
       }),
     ]);
 
