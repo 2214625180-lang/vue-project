@@ -38,7 +38,7 @@ export function generateSkuCartesian(specs: SpecItem[]): Record<string, string>[
 
   const [first, ...rest] = activeSpecs;
   
-  let combinations: Record<string, string>[] = first.values.map(v => ({ [first.name]: v }));
+  let combinations: Record<string, string>[] = first ? first.values.map(v => ({ [first.name]: v })) : [];
 
   rest.forEach(spec => {
     const temp: Record<string, string>[] = [];

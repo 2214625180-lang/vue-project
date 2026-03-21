@@ -16,8 +16,7 @@
 import { ref, watch } from 'vue';
 import { ElMessage, type UploadRequestOptions } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import axios from 'axios';
-import { useAuthStore } from '../../store/auth';
+import { uploadApi } from '../../api/upload';
 
 const props = defineProps<{
   modelValue: string;
@@ -45,32 +44,25 @@ const beforeAvatarUpload = (rawFile: File) => {
 
 const customUpload = async (options: UploadRequestOptions) => {
   const { file } = options;
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const authStore = useAuthStore();
   
   try {
-    const res = await axios.post('/api/upload/image', formData, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'multipart/form-data',
-        timeout: 60000,
-      },
-    });
-    const uploadedUrl = res.data.data.fileUrl; 
-    console.log('✅ 终于拿到的图片地址:', uploadedUrl); 
+    const res = await uploadApi.uploadImage(file as File);
+    const uploadedUrl = res.fileUrl;
+    console.log('✅ 上传返回图片地址:', uploadedUrl);
 
     if (uploadedUrl) {
       imageUrl.value = uploadedUrl;
       emit('update:modelValue', uploadedUrl);
+      options.onSuccess?.(res);
       ElMessage.success('Upload success');
     } else {
       ElMessage.error('图片地址提取失败');
+      options.onError?.(new Error('图片地址提取失败') as any);
     }
     
   } catch (error) {
     console.error('上传报错:', error);
+    options.onError?.(error as any);
     ElMessage.error('Upload failed');
   }
 };

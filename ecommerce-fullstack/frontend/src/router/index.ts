@@ -120,8 +120,6 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   NProgress.start();
   const authStore = useAuthStore();
-
-  // Admin Guard
   if (to.path.startsWith('/admin') && to.path !== '/admin/login') {
     const adminToken = localStorage.getItem('admin_token');
     if (!adminToken) {
@@ -130,7 +128,6 @@ router.beforeEach((to, from) => {
     }
   }
 
-  // User Guard (Only for non-admin routes that require auth)
   if (to.meta.requiresAuth && !to.path.startsWith('/admin') && !authStore.token) {
     NProgress.done();
     return {

@@ -106,25 +106,18 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { addressApi, type UserAddress } from '../../api/address';
 import { cartApi, type CartItem } from '../../api/cart';
 import { orderApi } from '../../api/order';
 import { ElMessage, ElIcon } from 'element-plus';
 import { Check } from '@element-plus/icons-vue';
-
 const router = useRouter();
-const route = useRoute(); // In real app, we might pass selected skuIds via query or store
-
 const loading = ref(true);
 const submitting = ref(false);
 const addresses = ref<UserAddress[]>([]);
 const selectedAddressId = ref('');
 const checkoutItems = ref<CartItem[]>([]);
-
-// For demo, we fetch ALL cart items. 
-// In production, we should only fetch items selected in the previous step.
-// We could use a store or route query params (e.g. ?skuIds=1,2,3)
 const fetchData = async () => {
   loading.value = true;
   try {

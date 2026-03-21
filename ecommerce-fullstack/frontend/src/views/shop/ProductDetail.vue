@@ -90,10 +90,7 @@ const loading = ref(false);
 const selectedSku = ref<ProductSku | null>(null);
 const selectedColor = ref('');
 const isFavorited = ref(false);
-
-// Fallback colors if no specific attributes are found
 const availableColors = ['默认色', '典雅黑', '月光白', '极光蓝'];
-
 const currentPrice = computed(() => {
   if (selectedSku.value) return Number(selectedSku.value.price).toFixed(2);
   if (product.value && product.value.skus.length > 0) {
@@ -102,14 +99,8 @@ const currentPrice = computed(() => {
   }
   return '0.00';
 });
-
 const handleColorSelect = (color: string) => {
-  selectedColor.value = color;
-  // In a real app, we would filter SKUs by attributes.
-  // Here we just mock the selection by ensuring selectedSku is set if it wasn't already.
-  // If we had real attribute data, we'd do:
-  // selectedSku.value = product.value.skus.find(s => s.specs.color === color) || product.value.skus[0];
-  
+  selectedColor.value = color;  
   if (!selectedSku.value && product.value?.skus?.length) {
       selectedSku.value = product.value.skus[0] as ProductSku;
   }

@@ -11,21 +11,36 @@ export class ShopProductController {
   ) {}
 
   @Get()
-  async getShopProducts(@Query('page') page = '1', @Query('limit') limit = '12') {
+  async getShopProducts(
+    @Query('page') page = '1',
+    @Query('limit') limit = '12',
+    @Query('categoryId') categoryId?: string,
+  ) {
     try {
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.max(1, parseInt(limit, 10) || 12);
       const skip = (pageNum - 1) * limitNum;
+      const where = {
+        status: ProductStatus.ON_SHELF,
+        skus: {
+          some: {},
+        },
+        ...(categoryId ? { categoryId } : {}),
+      };
 
       // Optimized Payload: Select only necessary fields
       const products = await this.prisma.productSpu.findMany({
-        where: {
-          status: ProductStatus.ON_SHELF,
-        },
+        where,
         select: {
           id: true,
           spuNo: true,
           name: true,
+          categoryId: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
           // We'll calculate min price from skus, but only selecting price field
           skus: {
             select: {
@@ -47,7 +62,7 @@ export class ShopProductController {
       });
 
       const total = await this.prisma.productSpu.count({
-        where: { status: ProductStatus.ON_SHELF },
+        where,
       });
 
       // Transform for frontend
@@ -61,6 +76,8 @@ export class ShopProductController {
           name: p.name,
           price: minPrice,
           coverImage,
+          categoryId: p.categoryId,
+          category: p.category,
           defaultSkuId, // Pass this to frontend
         };
       });
@@ -75,6 +92,31 @@ export class ShopProductController {
       console.error('Failed to get shop products:', error);
       throw error;
     }
+  }
+
+  @Get('categories')
+  async getShopCategories() {
+    const categories = await this.prisma.category.findMany({
+      where: {
+        products: {
+          some: {
+            status: ProductStatus.ON_SHELF,
+            skus: {
+              some: {},
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return categories;
   }
 
   @Get(':spuId')

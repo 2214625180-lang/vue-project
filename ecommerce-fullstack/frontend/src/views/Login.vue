@@ -42,10 +42,8 @@ import { useRouter } from 'vue-router';
 const authStore = useAuthStore();
 const router = useRouter();
 const activeTab = ref('login');
-
 const loginFormRef = ref<FormInstance>();
 const registerFormRef = ref<FormInstance>();
-
 const loginForm = reactive({
   email: '',
   password: '',

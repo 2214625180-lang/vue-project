@@ -278,7 +278,6 @@ const handleEdit = (row: ProductSpu) => {
     isEdit.value = true;
     currentProductId.value = row.id || '';
     dialogVisible.value = true;
-    
     // Populate form
     Object.assign(productForm, {
       name: row.name,
@@ -355,12 +354,18 @@ const findMatchingSkuId = (row: any): string | undefined => {
 const customUpload = async (options: UploadRequestOptions) => {
   try {
     const res = await uploadApi.uploadImage(options.file);
-    // Handle both direct data return and nested data structure
-    productForm.mainImage = (res as any).data?.url || (res as any).url;
+    productForm.mainImage = res.fileUrl;
     console.log('Upload response URL:', productForm.mainImage);
+
+    if (!productForm.mainImage) {
+      throw new Error('上传成功但未拿到图片地址');
+    }
+
+    options.onSuccess?.(res);
     ElMessage.success('图片上传成功');
   } catch (error) {
     console.error('Upload failed:', error);
+    options.onError?.(error as any);
     ElMessage.error('图片上传失败');
   }
 };

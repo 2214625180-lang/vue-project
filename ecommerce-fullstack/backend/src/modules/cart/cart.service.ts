@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { PrismaService } from '../../prisma.service'; // 请确保路径正确
@@ -52,6 +52,27 @@ export class CartService {
 
   // 🛡️ 改造1：使用 Lua 脚本保证加购的绝对原子性
   async addToCart(userId: string, skuId: string, quantity: number) {
+    const sku = await this.prisma.productSku.findUnique({
+      where: { id: skuId },
+      select: {
+        id: true,
+        stock: true,
+        spu: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!sku || sku.spu.status !== 'ON_SHELF') {
+      throw new BadRequestException('Product SKU does not exist or is unavailable');
+    }
+
+    if (sku.stock < quantity) {
+      throw new BadRequestException('Insufficient inventory');
+    }
+
     const key = this.getCartKey(userId);
     const addedAt = Date.now();
 

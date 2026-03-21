@@ -1,7 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { useAuthStore } from '../store/auth';
 import { ElMessage } from 'element-plus';
-import type { ApiResponse } from '../api/types';
 import router from '../router';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
@@ -45,12 +44,17 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response: AxiosResponse<any>) => {
     NProgress.done();
-    // Some APIs might return data directly or wrapped in { data: ... }
-    // Adjust based on your backend response structure
     const res = response.data;
-    
-    // If backend returns a standard structure with code/message
-    // Assuming 200/201 are success HTTP status codes, and backend might have its own 'code'
+
+    // Compatible with both legacy frontend conventions (20000)
+    // and current Nest backend wrapper ({ code: 200, message, data }).
+    if (typeof res?.code === 'number') {
+      if (res.code !== 20000 && res.code !== 200) {
+        ElMessage.error(res.message || 'Error');
+        return Promise.reject(new Error(res.message || 'Error'));
+      }
+    }
+
     return res;
   },
   (error) => {

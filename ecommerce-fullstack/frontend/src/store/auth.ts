@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { authApi, type LoginPayload, type RegisterPayload } from '../api/auth';
-
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem('token') || '',
@@ -20,8 +19,6 @@ export const useAuthStore = defineStore('auth', {
         if (token) {
             this.token = token;
             localStorage.setItem('token', this.token);
-            // Optionally fetch user profile here if not included in login response
-            // await this.fetchUserProfile(); 
             return true;
         }
         
@@ -35,11 +32,10 @@ export const useAuthStore = defineStore('auth', {
     async register(payload: RegisterPayload) {
       try {
         const response = await authApi.register(payload);
-        // Usually register might automatically login or require separate login
-        // For simplicity, let's assume it returns token or we redirect to login
+        console.log('✅ Registration Response:', response);
         return true;
       } catch (error) {
-        console.error('Registration failed', error);
+        console.error('注册失败', error);
         return false;
       }
     },

@@ -7,6 +7,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { AddressModule } from './modules/address/address.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bull';
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     AddressModule,
     OrderModule,
     PaymentModule,
+    ChatModule,
     ScheduleModule.forRoot(),
   ],
 })

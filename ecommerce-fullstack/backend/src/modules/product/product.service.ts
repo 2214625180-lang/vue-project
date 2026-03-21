@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { GetProductsDto } from './dto/get-products.dto';
 import { ProductStatus, Prisma } from '@prisma/client';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { NotFoundException } from '@nestjs/common';
@@ -10,6 +9,11 @@ export class ProductService {
   constructor(private prisma: PrismaService) {}
   async createProduct(createProductDto: CreateProductDto) {
     const { skus, ...spuData } = createProductDto;
+
+    if (!Array.isArray(skus) || skus.length === 0) {
+      throw new BadRequestException('At least one SKU is required');
+    }
+
     let categoryId = spuData.categoryId;
     if (!categoryId) {
       // Find first available category or create a default one
@@ -42,6 +46,10 @@ export class ProductService {
           skus: true,
         },
       });
+
+      if (!productSpu.skus || productSpu.skus.length === 0) {
+        throw new BadRequestException('Product created without SKU, please retry');
+      }
 
       return productSpu;
     });

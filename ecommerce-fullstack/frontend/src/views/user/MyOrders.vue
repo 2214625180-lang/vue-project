@@ -151,14 +151,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { orderApi, type Order, type OrderStatus, type PaginatedResponse } from '../../api/order';
 import { paymentApi } from '../../api/payment'; // Assuming this exists or we add it
 import { uploadApi } from '../../api/upload'; // Import upload API
 import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus';
 import { InfoFilled } from '@element-plus/icons-vue';
-
-const router = useRouter();
 const loading = ref(false);
 const isPaying = ref(false); // For fullscreen loader
 const orderList = ref<Order[]>([]);

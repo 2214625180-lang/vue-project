@@ -112,10 +112,17 @@ const fetchAddresses = async () => {
   }
 };
 
-const handleAdd = () => {
-  isEdit.value = false;
-  dialogVisible.value = true;
-};
+    const handleAdd = () => {
+      isEdit.value = false;
+      Object.assign(form, {
+        receiverName: '',
+        phone: '',
+        // ... 其他字段重置为空或默认值
+        isDefault: false,
+      });
+      dialogVisible.value = true;
+    };
+    
 
 const handleEdit = (address: UserAddress) => {
   isEdit.value = true;
@@ -178,7 +185,6 @@ onMounted(() => {
   fetchAddresses();
 });
 </script>
-
 <style scoped>
 /* Tailwind-like utilities */
 .container { max-width: 1200px; margin: 0 auto; }

@@ -155,7 +155,7 @@ const removeSpec = (index: number) => {
 };
 
 const removeSpecValue = (specIndex: number, tagIndex: number) => {
-  specList[specIndex].values.splice(tagIndex, 1);
+  specList[specIndex]?.values?.splice(tagIndex, 1);
 };
 
 const showInput = (index: number) => {
@@ -169,32 +169,23 @@ const showInput = (index: number) => {
 const handleInputConfirm = (index: number) => {
   const val = inputValue.value[index];
   if (val) {
-    if (!specList[index].values.includes(val)) {
+    if (specList[index]?.values && !specList[index].values.includes(val)) {
       specList[index].values.push(val);
     }
   }
   inputVisible.value[index] = false;
   inputValue.value[index] = '';
 };
-
-// --- Logic: SKU Matrix Generation & State Preservation ---
-// Watch deep changes in specList to regenerate the table
 watch(
   () => specList,
   (newSpecs) => {
-    // 1. Generate new Cartesian product of specs
     const newMatrix = generateSkuCartesian(newSpecs);
-    
-    // 2. Map to SkuRows, preserving existing data
-    // We create a map of existing rows keyed by their spec combination signature
     const existingMap = new Map<string, SkuRow>();
     skuTableData.value.forEach(row => {
       existingMap.set(row._key, row);
     });
 
     const newTableData: SkuRow[] = newMatrix.map(specs => {
-      // Create a unique key for this spec combination (e.g. "Color:Red|Size:S")
-      // Sort keys to ensure consistent order
       const key = Object.entries(specs)
         .sort(([k1], [k2]) => k1.localeCompare(k2))
         .map(([k, v]) => `${k}:${v}`)
@@ -203,10 +194,8 @@ watch(
       const existingRow = existingMap.get(key);
 
       if (existingRow) {
-        // PRESERVE existing input
         return existingRow;
       } else {
-        // Create NEW row
         return {
           skuNo: '',
           price: 0,
@@ -221,8 +210,6 @@ watch(
   },
   { deep: true, immediate: true }
 );
-
-// Expose data for parent component
 defineExpose({
   skuTableData,
   specList

@@ -139,7 +139,6 @@ import { orderApi } from '../../api/order';
 import { addressApi, type UserAddress } from '../../api/address';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { debounce } from 'lodash-es';
-
 const router = useRouter();
 const loading = ref(false);
 const cartItems = ref<CartItem[]>([]);
